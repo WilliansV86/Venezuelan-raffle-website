@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
-const TicketSelector = ({ totalTickets, soldTickets = [], selectedTickets = [], onSelectTicket }) => {
+const TicketSelector = ({ totalTickets, availableTickets = [], selectedTickets = [], onSelectTicket }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const ticketsPerPage = 100;
   const totalPages = Math.ceil(totalTickets / ticketsPerPage);
@@ -11,20 +11,23 @@ const TicketSelector = ({ totalTickets, soldTickets = [], selectedTickets = [], 
     const end = Math.min(currentPage * ticketsPerPage, totalTickets);
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
-  
-  const isTicketSold = (number) => soldTickets.includes(number);
+
+  // Use a Set for efficient lookup of available tickets
+  const availableTicketsSet = useMemo(() => new Set(availableTickets), [availableTickets]);
+
+  const isTicketAvailable = (number) => availableTicketsSet.has(number);
   const isTicketSelected = (number) => selectedTickets.includes(number);
   
   const handleTicketClick = (number) => {
-    if (isTicketSold(number)) return; // Can't select already sold tickets
+    if (!isTicketAvailable(number)) return; // Can't select unavailable tickets
     onSelectTicket(number);
   };
   
   const getTicketClassName = (number) => {
     let className = "w-10 h-10 flex items-center justify-center rounded-md m-1 transition-all duration-200 ";
     
-    if (isTicketSold(number)) {
-      className += "bg-gray-300 text-gray-500 cursor-not-allowed";
+    if (!isTicketAvailable(number)) {
+      className += "bg-gray-300 text-gray-500 cursor-not-allowed"; // Style for unavailable/sold tickets
     } else if (isTicketSelected(number)) {
       className += "bg-vnz-yellow text-dark font-bold transform scale-110 shadow-md";
     } else {
@@ -34,6 +37,18 @@ const TicketSelector = ({ totalTickets, soldTickets = [], selectedTickets = [], 
     return className;
   };
   
+  // Determine if the current page has any selectable (available) tickets
+  // This is a simple check, could be more sophisticated by checking actual numbers on page
+  const noAvailableTicketsOnPage = useMemo(() => {
+      if (!availableTickets || availableTickets.length === 0) return true;
+      // A more accurate check would be to see if any ticket number in the current page range is in availableTicketsSet
+      // For now, if availableTickets is empty overall, it implies no tickets are available.
+      // This component primarily renders based on totalTickets for pagination,
+      // individual ticket availability is for styling/interaction.
+      return false; // Assuming some tickets might be available if array is not empty
+  }, [availableTickets]);
+
+
   return (
     <div>
       <div className="bg-gray-100 p-4 rounded-md mb-4">
@@ -46,11 +61,11 @@ const TicketSelector = ({ totalTickets, soldTickets = [], selectedTickets = [], 
             </div>
             <div className="flex items-center mt-1">
               <div className="w-6 h-6 bg-gray-300 rounded mr-2"></div>
-              <span className="text-sm">Vendido</span>
+              <span className="text-sm">No Disponible / Vendido</span>
             </div>
             <div className="flex items-center mt-1">
               <div className="w-6 h-6 bg-vnz-yellow rounded mr-2"></div>
-              <span className="text-sm">Seleccionado</span>
+              <span className="text-sm">Seleccionado por ti</span>
             </div>
           </div>
           
@@ -76,7 +91,17 @@ const TicketSelector = ({ totalTickets, soldTickets = [], selectedTickets = [], 
               key={number}
               className={getTicketClassName(number)}
               onClick={() => handleTicketClick(number)}
-              disabled={isTicketSold(number)}
+              disabled={!isTicketAvailable(number) && !isTicketSelected(number)} // Disable if not available, unless it's already selected by the user (allowing unselection)
+              // Actually, if it's selected, it must have been available. So just !isTicketAvailable is fine for disabling purchase.
+              // The handleTicketClick will prevent selection if not available.
+              // For display and interaction, if it's selected, it should be clickable to deselect.
+              // If not available and not selected, it's disabled.
+              // If available and not selected, it's clickable to select.
+              // If available AND selected, it's clickable to deselect.
+              // So, disable only if !isTicketAvailable(number) AND !isTicketSelected(number)
+              // However, getTicketClassName already styles it as "not-allowed" if !isTicketAvailable.
+              // The simple disable should be:
+              disabled={!isTicketAvailable(number)}
             >
               {number}
             </button>

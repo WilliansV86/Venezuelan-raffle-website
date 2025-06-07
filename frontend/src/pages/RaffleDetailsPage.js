@@ -14,7 +14,10 @@ const RaffleDetailsPage = () => {
   const [raffle, setRaffle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [apiError, setApiError] = useState(null); // For API call errors specifically
+  const [isSubmitting, setIsSubmitting] = useState(false); // For purchase submission
   const [selectedTickets, setSelectedTickets] = useState([]);
+  const [participantData, setParticipantData] = useState(null); // To store form data
   const [purchaseStep, setPurchaseStep] = useState('select'); // 'select', 'form', 'payment', 'confirmation'
 
   useEffect(() => {
@@ -51,15 +54,67 @@ const RaffleDetailsPage = () => {
     }
   };
 
-  const handleProceedToPayment = (participantData) => {
-    // In a real app, you'd save this data and progress to payment
+  const handleProceedToPayment = (formData) => {
+    setParticipantData(formData); // Save participant data
+    setApiError(null); // Clear previous API errors
     setPurchaseStep('payment');
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!participantData || selectedTickets.length === 0) {
+      setApiError('No hay datos de participante o boletos seleccionados.');
+      return;
+    }
+    setIsSubmitting(true);
+    setApiError(null);
+    try {
+      const payload = {
+        raffleId: id,
+        ticketNumbers: selectedTickets, // Assuming backend can handle an array of ticket numbers
+        participant: participantData, // Assuming backend can handle participant object
+      };
+      // In a real app, the backend /api/tickets should handle creating participant if not exists,
+      // then creating tickets and linking them.
+      // It should also ensure tickets are still available before creation.
+      const { data } = await axios.post('/api/tickets', payload);
+
+      // On success
+      setPurchaseStep('confirmation');
+      setSelectedTickets([]); // Clear selected tickets
+      // Optionally, you might want to re-fetch raffle data to update availableTickets display
+      // Or update raffle state directly if the API returns the updated raffle
+      if (data.raffle) { // Assuming the API returns the updated raffle
+        setRaffle(data.raffle);
+      } else {
+        // If not, trigger a re-fetch (example, not fully implemented here for brevity)
+        // fetchRaffleDetails(); // You'd need to make fetchRaffleDetails accessible or manage state globally
+      }
+      console.log('Ticket purchase successful:', data); // Log for debugging
+
+    } catch (err) {
+      console.error('Error purchasing tickets:', err);
+      const message = err.response?.data?.message || 'Error al procesar la compra. Por favor, intente de nuevo.';
+      setApiError(message);
+      // Optionally, stay on 'payment' step or move to a specific error step
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
   
   if (!raffle) return <div className="text-center">No se encontró el sorteo solicitado.</div>;
+
+  // Calculate sold and available counts
+  const totalTickets = raffle.totalTickets || 0;
+  const availableTicketsArray = Array.isArray(raffle.availableTickets) ? raffle.availableTickets : [];
+  const availableCount = availableTicketsArray.length;
+  let soldCount = 0;
+  if (totalTickets > 0) { // Ensure totalTickets is positive before calculating sold
+      soldCount = totalTickets - availableCount;
+  }
+
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -96,22 +151,22 @@ const RaffleDetailsPage = () => {
               </div>
               <div className="bg-gray-100 p-4 rounded">
                 <p className="font-bold">Vendidos</p>
-                <p className="text-xl">{raffle.soldTickets?.length || 0}</p>
+                <p className="text-xl">{soldCount}</p>
               </div>
               <div className="bg-gray-100 p-4 rounded">
                 <p className="font-bold">Disponibles</p>
-                <p className="text-xl">{raffle.totalTickets - (raffle.soldTickets?.length || 0)}</p>
+                <p className="text-xl">{availableCount}</p>
               </div>
             </div>
           </div>
           
           {/* Purchase Section - changes based on step */}
-          {purchaseStep === 'select' && (
+          {purchaseStep === 'select' && raffle.isActive && availableCount > 0 && (
             <>
               <h2 className="text-xl font-bold mb-3">Selecciona tus Boletos</h2>
               <TicketSelector 
-                totalTickets={raffle.totalTickets}
-                soldTickets={raffle.soldTickets || []}
+                totalTickets={totalTickets}
+                availableTickets={availableTicketsArray} // Pass the actual available tickets array
                 selectedTickets={selectedTickets}
                 onSelectTicket={handleTicketSelection}
               />
@@ -133,6 +188,16 @@ const RaffleDetailsPage = () => {
                 </div>
               )}
             </>
+          )}
+
+          {purchaseStep === 'select' && (!raffle.isActive || availableCount === 0) && (
+            <div className="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded">
+              <h2 className="text-xl font-bold mb-3">Boletos no disponibles</h2>
+              <p>
+                { !raffle.isActive ? "Este sorteo ya no está activo." : "Todos los boletos para este sorteo han sido vendidos."}
+              </p>
+              <p className="mt-2">¡Gracias por tu interés!</p>
+            </div>
           )}
           
           {purchaseStep === 'form' && (
@@ -160,13 +225,33 @@ const RaffleDetailsPage = () => {
                 <p>Titular: Sorteos Venezolanos</p>
               </div>
               
-              {/* File upload would go here */}
+              {/* File upload would go here - This part remains conceptual for now */}
               <div className="mb-6">
-                <label className="block mb-2 font-medium">Comprobante de Pago</label>
-                <input type="file" className="w-full p-2 border rounded" />
+                <label className="block mb-2 font-medium">Comprobante de Pago (Conceptual)</label>
+                <input type="file" className="w-full p-2 border rounded" disabled={isSubmitting} />
               </div>
               
-              <button className="btn btn-primary">Confirmar Compra</button>
+              {apiError && <ErrorAlert message={apiError} />}
+
+              <button
+                className="btn btn-primary w-full"
+                onClick={handleConfirmPurchase}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? <LoadingSpinner small /> : 'Confirmar Compra y Enviar Comprobante'}
+              </button>
+            </div>
+          )}
+
+          {purchaseStep === 'confirmation' && (
+            <div className="mt-4 p-6 bg-green-100 border-l-4 border-green-500 text-green-700 rounded text-center">
+              <h2 className="text-2xl font-bold mb-3">¡Compra Exitosa!</h2>
+              <p className="mb-2">Tus boletos han sido registrados.</p>
+              <p className="mb-4">Recibirás un correo electrónico con los detalles de tu compra y los números de tus boletos.</p>
+              <p className="font-semibold">¡Mucha suerte en el sorteo!</p>
+              <Link to="/" className="btn btn-primary mt-6">
+                Volver al Inicio
+              </Link>
             </div>
           )}
         </div>

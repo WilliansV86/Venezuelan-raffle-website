@@ -7,17 +7,6 @@ const connectDB = require('./config/db');
 // Initialize Express app
 const app = express();
 
-// Connect to Database - this now returns a promise
-connectDB()
-  .then((conn) => {
-    if (!conn) {
-      console.warn('Servidor iniciado sin conexión a la base de datos. Algunas funciones no estarán disponibles.');
-    }
-  })
-  .catch((err) => {
-    console.error('Error inesperado al inicializar la conexión a MongoDB:', err);
-  });
-
 // Middleware
 app.use(cors()); // Enable CORS for all routes
 app.use(express.json()); // To parse JSON bodies
@@ -46,41 +35,70 @@ app.use(notFound); // Handles 404 errors for routes not found
 app.use(errorHandler); // Handles all other errors
 
 const PORT = process.env.PORT || 5000;
-
-// Start server and store the instance so we can shut it down gracefully
 let server;
-try {
-  server = app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT} en modo ${process.env.NODE_ENV}`);
-  });
-} catch (error) {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`ERROR: Puerto ${PORT} ya está en uso. Intente usar otro puerto o libere el puerto actual.`);
-    process.exit(1);
-  } else {
-    console.error(`Error al iniciar el servidor: ${error.message}`);
-    process.exit(1);
-  }
-}
 
-// Graceful shutdown handlers
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+// Function to start the server
+const startServer = () => {
+  try {
+    server = app.listen(PORT, () => {
+      console.log(`Servidor corriendo en el puerto ${PORT} en modo ${process.env.NODE_ENV}`);
+    });
+
+    // Graceful shutdown handlers
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+
+  } catch (error) {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`ERROR: Puerto ${PORT} ya está en uso. Intente usar otro puerto o libere el puerto actual.`);
+    } else {
+      console.error(`Error al iniciar el servidor: ${error.message}`);
+    }
+    process.exit(1); // Exit if server fails to start
+  }
+};
+
+// Connect to Database and then start server
+connectDB()
+  .then((conn) => {
+    if (conn) {
+      // If connection is successful, start the server
+      startServer();
+    } else {
+      // If connectDB returns null (or any falsy value indicating failure)
+      console.error('No se pudo conectar a la base de datos. El servidor no se iniciará.');
+      process.exit(1); // Exit the process
+    }
+  })
+  .catch((err) => {
+    // This catch is for unexpected errors during the connectDB() execution itself
+    console.error('Error inesperado durante la conexión a la base de datos:', err);
+    process.exit(1); // Exit the process
+  });
+
 
 function gracefulShutdown() {
   console.log('Recibida señal de terminación, cerrando el servidor...');
-  server.close(() => {
-    console.log('Servidor cerrado exitosamente');
-    // Disconnect from MongoDB
+  if (server) {
+    server.close(() => {
+      console.log('Servidor cerrado exitosamente');
+      // Disconnect from MongoDB
+      mongoose.connection.close(false, () => {
+        console.log('Conexión MongoDB cerrada');
+        process.exit(0);
+      });
+    });
+
+    // If server hasn't closed in 10 seconds, force shutdown
+    setTimeout(() => {
+      console.error('No se pudo cerrar el servidor limpiamente, forzando salida');
+      process.exit(1);
+    }, 10000);
+  } else {
+    // If server is not even defined, just try to close mongoose connection and exit
     mongoose.connection.close(false, () => {
       console.log('Conexión MongoDB cerrada');
       process.exit(0);
     });
-  });
-  
-  // If server hasn't closed in 10 seconds, force shutdown
-  setTimeout(() => {
-    console.error('No se pudo cerrar el servidor limpiamente, forzando salida');
-    process.exit(1);
-  }, 10000);
+  }
 }

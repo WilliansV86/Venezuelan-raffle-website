@@ -25,10 +25,10 @@ const raffleSchema = new mongoose.Schema({
     required: [true, 'El número total de boletos es obligatorio.'],
     min: [1, 'Debe haber al menos un boleto.'],
   },
-  // availableTickets: {
-  //   type: [Number], // Array of available ticket numbers, e.g., [1, 2, 3, ..., 500]
-  //   // This will be populated initially and numbers removed as they are sold
-  // },
+  availableTickets: {
+    type: [Number], // Array of available ticket numbers, e.g., [1, 2, 3, ..., 500]
+    // This will be populated initially and numbers removed as they are sold
+  },
   startDate: {
     type: Date,
     default: Date.now,
@@ -51,10 +51,10 @@ const raffleSchema = new mongoose.Schema({
     default: null,
   },
   // You might want to add an image URL for the prize or raffle banner
-  // prizeImageUrl: {
-  //   type: String,
-  //   trim: true,
-  // },
+  prizeImageUrl: {
+    type: String,
+    trim: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -70,13 +70,13 @@ raffleSchema.pre('save', function (next) {
   }
 });
 
-// // Initialize available tickets when a new raffle is created
-// raffleSchema.pre('save', function(next) {
-//   if (this.isNew && this.totalTickets > 0) {
-//     this.availableTickets = Array.from({ length: this.totalTickets }, (_, i) => i + 1);
-//   }
-//   next();
-// });
+// Initialize available tickets when a new raffle is created
+raffleSchema.pre('save', function(next) {
+  if (this.isNew && this.totalTickets > 0) {
+    this.availableTickets = Array.from({ length: this.totalTickets }, (_, i) => i + 1);
+  }
+  next();
+});
 
 raffleSchema.index({ isActive: 1, endDate: 1 });
 

@@ -3,9 +3,28 @@ import { Link } from 'react-router-dom';
 import RaffleCountdown from './RaffleCountdown';
 
 const RaffleCard = ({ raffle }) => {
-  // Calculate percentage of tickets sold
-  const soldPercentage = raffle.soldTickets ? 
-    Math.round((raffle.soldTickets.length / raffle.totalTickets) * 100) : 0;
+  // Calculate count and percentage of tickets sold
+  const totalTickets = raffle.totalTickets || 0;
+  const availableTicketsCount = Array.isArray(raffle.availableTickets) ? raffle.availableTickets.length : totalTickets;
+  // If availableTickets is not provided or not an array, assume all are available initially for safety,
+  // though backend should always send it.
+  // However, for a raffle just created and where availableTickets might be an empty array initially by some logic (e.g. totalTickets=0),
+  // this needs to be robust.
+  // Assuming totalTickets is always > 0 for a valid raffle with tickets.
+  // If availableTickets is explicitly empty for a new raffle with totalTickets > 0, it means all are available.
+  // The backend initializes availableTickets to [1, 2, ..., totalTickets]. So length should be totalTickets if none sold.
+
+  let soldCount = 0;
+  if (totalTickets > 0 && Array.isArray(raffle.availableTickets)) {
+    soldCount = totalTickets - availableTicketsCount;
+  } else if (totalTickets > 0 && raffle.availableTickets === undefined) {
+    // Fallback if availableTickets is missing: assume 0 sold, or handle as error/unknown
+    // For now, assume 0 sold if data is incomplete, to avoid NaN.
+    // This case should ideally not happen with a consistent backend.
+    soldCount = 0;
+  }
+
+  const soldPercentage = totalTickets > 0 ? Math.round((soldCount / totalTickets) * 100) : 0;
   
   return (
     <div className="card hover:-translate-y-1 transition-transform duration-300">
@@ -31,7 +50,7 @@ const RaffleCard = ({ raffle }) => {
         <div className="mb-3">
           <div className="flex justify-between text-sm mb-1">
             <span>{soldPercentage}% Vendido</span>
-            <span>{raffle.soldTickets?.length || 0} de {raffle.totalTickets} boletos</span>
+            <span>{soldCount} de {totalTickets} boletos</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
