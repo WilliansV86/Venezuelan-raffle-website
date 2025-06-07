@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+// Link is not used, can be removed if not needed for other parts later
+// import { Link } from 'react-router-dom';
+import { fetchRaffles } from '../services/apiService'; // Import the service
 
 // Components
 import RaffleCard from '../components/raffle/RaffleCard';
@@ -13,10 +14,10 @@ const HomePage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchRaffles = async () => {
+    const loadRaffles = async () => { // Renamed function for clarity
       try {
         setLoading(true);
-        const { data } = await axios.get('/api/raffles');
+        const { data } = await fetchRaffles(); // Use the service
         setRaffles(data);
         setError(null);
       } catch (err) {
@@ -27,11 +28,12 @@ const HomePage = () => {
       }
     };
 
-    fetchRaffles();
+    loadRaffles(); // Call the renamed function
   }, []);
 
   return (
     <div>
+      {/* Hero Section - Consider making this a reusable component */}
       <section className="mb-10">
         <div className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-vnz-blue via-vnz-yellow to-vnz-red rounded-lg shadow-lg">
           <div className="max-w-3xl mx-auto text-center">

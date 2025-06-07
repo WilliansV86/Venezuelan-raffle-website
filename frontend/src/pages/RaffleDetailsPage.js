@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import { fetchRaffleById, createTicket } from '../../services/apiService'; // Updated import
 
 // Components
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -21,10 +21,11 @@ const RaffleDetailsPage = () => {
   const [purchaseStep, setPurchaseStep] = useState('select'); // 'select', 'form', 'payment', 'confirmation'
 
   useEffect(() => {
-    const fetchRaffleDetails = async () => {
+    // Renamed to avoid conflict if we want to call it directly later e.g. after purchase
+    const loadRaffleDetails = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`/api/raffles/${id}`);
+        const { data } = await fetchRaffleById(id); // Use service
         setRaffle(data);
         setError(null);
       } catch (err) {
@@ -35,8 +36,25 @@ const RaffleDetailsPage = () => {
       }
     };
 
-    fetchRaffleDetails();
+    loadRaffleDetails();
   }, [id]);
+
+  // Function to reload raffle details, e.g., after a ticket purchase
+  const refreshRaffleDetails = async () => {
+    try {
+      setLoading(true); // You might want a different loading state for refresh
+      const { data } = await fetchRaffleById(id);
+      setRaffle(data);
+      setError(null);
+    } catch (err) {
+      // Handle error on refresh differently or use existing setError
+      setError('Error al actualizar los detalles del sorteo.');
+      console.error('Error refreshing raffle details:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleTicketSelection = (ticketNumber) => {
     if (selectedTickets.includes(ticketNumber)) {
@@ -76,20 +94,21 @@ const RaffleDetailsPage = () => {
       // In a real app, the backend /api/tickets should handle creating participant if not exists,
       // then creating tickets and linking them.
       // It should also ensure tickets are still available before creation.
-      const { data } = await axios.post('/api/tickets', payload);
+      const { data: ticketResponse } = await createTicket(payload); // Use service
 
       // On success
       setPurchaseStep('confirmation');
       setSelectedTickets([]); // Clear selected tickets
-      // Optionally, you might want to re-fetch raffle data to update availableTickets display
-      // Or update raffle state directly if the API returns the updated raffle
-      if (data.raffle) { // Assuming the API returns the updated raffle
-        setRaffle(data.raffle);
+
+      // Re-fetch raffle data to get the latest availableTickets count
+      // The backend's createTicket was updated to return the updated raffle document
+      if (ticketResponse && ticketResponse.raffle) {
+         setRaffle(ticketResponse.raffle);
       } else {
-        // If not, trigger a re-fetch (example, not fully implemented here for brevity)
-        // fetchRaffleDetails(); // You'd need to make fetchRaffleDetails accessible or manage state globally
+        // Fallback to manual refresh if ticketResponse doesn't include the updated raffle
+        refreshRaffleDetails();
       }
-      console.log('Ticket purchase successful:', data); // Log for debugging
+      console.log('Ticket purchase successful:', ticketResponse); // Log for debugging
 
     } catch (err) {
       console.error('Error purchasing tickets:', err);
@@ -137,6 +156,17 @@ const RaffleDetailsPage = () => {
         
         {/* Raffle Content */}
         <div className="p-6">
+          {/* Prize Image */}
+          {raffle.prizeImageUrl && (
+            <div className="mb-8 text-center">
+              <img
+                src={raffle.prizeImageUrl}
+                alt={`Premio: ${raffle.prize}`}
+                className="max-w-md mx-auto h-auto rounded-lg shadow-lg object-contain" // max-w-md for reasonable size, object-contain
+              />
+            </div>
+          )}
+
           <div className="mb-8">
             <h2 className="text-xl font-bold mb-3">Descripción del Sorteo</h2>
             <p className="whitespace-pre-line">{raffle.description}</p>
