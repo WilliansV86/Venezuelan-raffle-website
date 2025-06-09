@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchRaffleById, createTicket } from '../../services/apiService'; // Updated import
+import { fetchRaffleById, createTicket } from '../services/apiService'; // Corrected import path
 
 // Components
 import LoadingSpinner from '../components/common/LoadingSpinner';

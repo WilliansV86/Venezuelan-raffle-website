@@ -18,6 +18,7 @@ module.exports = {
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
         'heading': ['Montserrat', 'sans-serif'],
+        'brand': ['"Luckiest Guy"', 'cursive'],
       },
       animation: {
         'bounce-slow': 'bounce 2s infinite',

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import logoImage from '../../assets/logo.jpg';
+import venezuelanFlag from '../../assets/flag-ve.svg';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,10 +11,13 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-primary">
-              Sorteos<span className="text-accent">VE</span>
-            </span>
+          <Link to="/" className="flex items-center space-x-3"> {/* Increased space-x for image */}
+            <img 
+              src={logoImage} 
+              alt="TU SUERTE ESTA AQUI VE Logo" 
+              className="h-10 w-auto rounded-lg" // Adjust height (h-10 is 2.5rem/40px), width will be auto
+            />
+            <span className="ml-2 text-xl text-vnz-blue flex items-center"><span className="font-brand">TU SUERTE ESTA AQUI VE</span><img src={venezuelanFlag} alt="VE" className="h-4 w-auto ml-2" /></span>
           </Link>
 
           {/* Desktop Navigation */}

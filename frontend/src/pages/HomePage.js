@@ -7,6 +7,7 @@ import { fetchRaffles } from '../services/apiService'; // Import the service
 import RaffleCard from '../components/raffle/RaffleCard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
+import logoImage from '../assets/logo.jpg'; // Import the logo
 
 const HomePage = () => {
   const [raffles, setRaffles] = useState([]);
@@ -35,11 +36,13 @@ const HomePage = () => {
     <div>
       {/* Hero Section - Consider making this a reusable component */}
       <section className="mb-10">
-        <div className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-vnz-blue via-vnz-yellow to-vnz-red rounded-lg shadow-lg">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl font-extrabold text-white drop-shadow-md sm:text-5xl">
-              Sorteos Venezolanos
-            </h1>
+        <div className="bg-gradient-to-r from-vnz-blue via-vnz-yellow to-vnz-red rounded-lg shadow-lg">
+          <div className="text-center">
+            <img 
+              src={logoImage} 
+              alt="TU SUERTE ESTA AQUI VE Logo" 
+              className="w-full h-auto mx-auto mb-4 rounded-lg shadow-md" // Increased size, adjusted margin
+            />
             <p className="mt-4 text-xl text-white drop-shadow">
               Los mejores sorteos en línea con premios exclusivos para venezolanos en todo el mundo.
             </p>
