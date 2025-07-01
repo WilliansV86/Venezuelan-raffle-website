@@ -3,7 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 
 // Page components
 import HomePage from './pages/HomePage';
-import RaffleDetailsPage from './pages/RaffleDetailsPage';
+import RaffleDetailPage from './pages/RaffleDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 // Admin Page Components
 import AdminRafflesListPage from './pages/admin/AdminRafflesListPage';
@@ -13,7 +13,6 @@ import EditRafflePage from './pages/admin/EditRafflePage';
 
 // Layout components
 import Navbar from './components/layout/Navbar';
-import Footer from './components/layout/Footer';
 import WhatsAppButton from './components/common/WhatsAppButton';
 
 function App() {
@@ -21,11 +20,11 @@ function App() {
     <div className="flex flex-col min-h-screen">
       <Navbar />
       
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/raffle/:id" element={<RaffleDetailsPage />} />
+          <Route path="/raffle/:id" element={<RaffleDetailPage />} />
 
           {/* Admin Routes */}
           <Route path="/admin/raffles" element={<AdminRafflesListPage />} />
@@ -37,7 +36,7 @@ function App() {
       </main>
       
       <WhatsAppButton phoneNumber="+584123456789" />
-      <Footer />
+      
     </div>
   );
 }

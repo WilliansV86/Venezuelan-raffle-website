@@ -4,7 +4,7 @@
 
 /* Custom styles */
 body {
-  @apply bg-light text-dark font-sans;
+  @apply bg-gradient-to-br from-gray-900 via-blue-800 to-black text-gray-200 font-sans;
 }
 
 h1, h2, h3, h4, h5, h6 {
