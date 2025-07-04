@@ -1,76 +1,61 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import RaffleCountdown from './RaffleCountdown';
 
 const RaffleCard = ({ raffle }) => {
-  // Calculate count and percentage of tickets sold
-  const totalTickets = raffle.totalTickets || 0;
-  const availableTicketsCount = Array.isArray(raffle.availableTickets) ? raffle.availableTickets.length : totalTickets;
-  // If availableTickets is not provided or not an array, assume all are available initially for safety,
-  // though backend should always send it.
-  // However, for a raffle just created and where availableTickets might be an empty array initially by some logic (e.g. totalTickets=0),
-  // this needs to be robust.
-  // Assuming totalTickets is always > 0 for a valid raffle with tickets.
-  // If availableTickets is explicitly empty for a new raffle with totalTickets > 0, it means all are available.
-  // The backend initializes availableTickets to [1, 2, ..., totalTickets]. So length should be totalTickets if none sold.
-
-  let soldCount = 0;
-  if (totalTickets > 0 && Array.isArray(raffle.availableTickets)) {
-    soldCount = totalTickets - availableTicketsCount;
-  } else if (totalTickets > 0 && raffle.availableTickets === undefined) {
-    // Fallback if availableTickets is missing: assume 0 sold, or handle as error/unknown
-    // For now, assume 0 sold if data is incomplete, to avoid NaN.
-    // This case should ideally not happen with a consistent backend.
-    soldCount = 0;
-  }
-
-  const soldPercentage = totalTickets > 0 ? Math.round((soldCount / totalTickets) * 100) : 0;
+  // Calculate percentage remaining
+  const percentageSold = raffle.percentageSold || 0;
+  const percentageRemaining = 100 - percentageSold;
+  
+  // Helper function for progress bar color
+  const getProgressBarColor = (percentage) => {
+    if (percentage < 50) return 'bg-gradient-to-r from-cyan-500 to-blue-500';
+    if (percentage < 75) return 'bg-gradient-to-r from-cyan-500 to-green-500';
+    return 'bg-gradient-to-r from-green-500 to-yellow-500';
+  };
   
   return (
-    <div className="card hover:-translate-y-1 transition-transform duration-300">
+    <>
       <div className="relative">
         {/* Prize Image */}
         <img 
-          src={raffle.prizeImageUrl || 'https://via.placeholder.com/400x250?text=Premio+del+Sorteo'} 
-          alt={raffle.prize} 
+          src={raffle.image || '/images/toyota-hilux-raffle.png'} 
+          alt={raffle.title || 'Sorteo Especial'} 
           className="w-full h-48 object-cover"
+          onError={(e) => {
+            e.target.onerror = null; 
+            e.target.src = '/images/toyota-hilux-raffle.png';
+          }}
         />
         
         {/* Price Badge */}
         <div className="absolute top-0 right-0 bg-vnz-yellow text-dark font-bold py-1 px-3 m-2 rounded-full">
-          ${raffle.ticketPrice.toFixed(2)}
+          ${raffle.ticketPrice?.toFixed(2) || '10.00'}
         </div>
       </div>
       
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="font-bold text-xl mb-2 text-primary line-clamp-2">{raffle.title}</h3>
-        <p className="text-gray-600 mb-4 line-clamp-3">{raffle.description}</p>
-        
-        <div className="mb-3">
-          <div className="flex justify-between text-sm mb-1">
-            <span>{soldPercentage}% Vendido</span>
-            <span>{soldCount} de {totalTickets} boletos</span>
+      <div className="p-4 pt-3 pb-5 font-sans flex flex-col justify-between h-[110px]">
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-cyan-400 text-sm">Quedan {percentageRemaining}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-700 rounded-full h-2">
             <div 
-              className="bg-vnz-red h-2 rounded-full" 
-              style={{ width: `${soldPercentage}%` }}
+              className={`h-2 rounded-full ${getProgressBarColor(percentageSold)}`}
+              style={{ width: `${percentageSold}%` }}
             ></div>
           </div>
         </div>
         
-        <div className="flex justify-between items-center mt-4">
-          <RaffleCountdown endDate={raffle.endDate} compact={true} />
+        <div className="flex justify-center items-center mt-6">
           <Link 
             to={`/raffle/${raffle._id}`} 
-            className="btn btn-primary"
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-2 px-6 rounded-full hover:scale-105 transform transition duration-300"
           >
-            Ver Detalles
+            Participar
           </Link>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
