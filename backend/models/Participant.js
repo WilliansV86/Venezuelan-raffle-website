@@ -6,6 +6,13 @@ const participantSchema = new mongoose.Schema({
     required: [true, 'El nombre es obligatorio.'],
     trim: true,
   },
+  cedula: {
+    type: String,
+    required: [true, 'El número de cédula es obligatorio.'],
+    trim: true,
+    // Basic validation for Venezuelan cedula (V- or E- followed by digits)
+    match: [/^[VE]-\d+$/, 'Por favor, introduce un número de cédula válido (ej: V-12345678).'],
+  },
   whatsapp: {
     type: String,
     required: [true, 'El número de WhatsApp es obligatorio.'],

@@ -34,7 +34,7 @@ const Navbar = () => {
               <Link to="/" className="text-xl font-bold tracking-wider text-gray-300 hover:text-cyan-400 transition-colors duration-300">
                 Inicio
               </Link>
-              <Link to="/verificar-ticket" className="text-xl font-bold tracking-wider text-gray-300 hover:text-cyan-400 transition-colors duration-300">
+              <Link to="/verify-tickets" className="text-xl font-bold tracking-wider text-gray-300 hover:text-cyan-400 transition-colors duration-300">
                 Verificar Tickets
               </Link>
               <Link to="/ganadores" className="text-xl font-bold tracking-wider text-gray-300 hover:text-cyan-400 transition-colors duration-300">

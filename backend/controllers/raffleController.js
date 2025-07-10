@@ -183,10 +183,26 @@ const deleteRaffle = asyncHandler(async (req, res) => {
   res.json({ message: 'Rifa eliminada exitosamente' });
 });
 
+// @desc    Get all past (inactive) raffles with winner information
+// @route   GET /api/raffles/past
+// @access  Public
+const getPastRaffles = asyncHandler(async (req, res) => {
+  // Fetch inactive raffles (past raffles)
+  const pastRaffles = await Raffle.find({ isActive: false })
+    .sort({ endDate: -1 }) // Most recent first
+    .populate({
+      path: 'winner',
+      select: 'name cedula email' // Only select necessary fields
+    });
+  
+  res.json(pastRaffles);
+});
+
 module.exports = {
   getAllRaffles,
   createRaffle,
   getRaffleById,
   updateRaffle,
   deleteRaffle,
+  getPastRaffles,
 };

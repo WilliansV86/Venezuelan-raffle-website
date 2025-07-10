@@ -29,6 +29,21 @@ const PurchaseForm = ({ selectedTickets, ticketPrice, onSubmit, onBack }) => {
     }
   };
   
+  const handlePaymentMethodChange = (method) => {
+    setFormData({
+      ...formData,
+      paymentMethod: method,
+    });
+    
+    // If switching to Zelle or Binance, enforce minimum 10 tickets
+    if ((method === 'zelle' || method === 'binance') && formData.ticketCount < 10) {
+      setFormData({
+        ...formData,
+        ticketCount: 10,
+      });
+    }
+  };
+  
   const validateForm = () => {
     const newErrors = {};
     
@@ -52,6 +67,11 @@ const PurchaseForm = ({ selectedTickets, ticketPrice, onSubmit, onBack }) => {
     
     if (!formData.acceptTerms) {
       newErrors.acceptTerms = 'Debes aceptar los términos y condiciones';
+    }
+    
+    // Enforce minimum 10 tickets for Zelle and Binance
+    if ((formData.paymentMethod === 'zelle' || formData.paymentMethod === 'binance') && formData.ticketCount < 10) {
+      newErrors.ticketCount = `Mínimo 10 tickets requeridos para pagos con ${formData.paymentMethod === 'zelle' ? 'Zelle' : 'Binance'}.`;
     }
     
     return newErrors;

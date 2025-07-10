@@ -5,10 +5,17 @@ import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import RaffleDetailPage from './pages/RaffleDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
+import VerifyTicketsPage from './pages/VerifyTicketsPage';
+import WinnersPage from './pages/WinnersPage';
+import PastRaffleDetailPage from './pages/PastRaffleDetailPage';
+import TestPurchasePage from './pages/TestPurchasePage';
+import FormDebugPage from './pages/FormDebugPage';
 // Admin Page Components
 import AdminRafflesListPage from './pages/admin/AdminRafflesListPage';
 import CreateRafflePage from './pages/admin/CreateRafflePage';
 import EditRafflePage from './pages/admin/EditRafflePage';
+import AdminPage from './pages/AdminPage';
+import RaffleManagementPage from './pages/admin/RaffleManagementPage';
 
 
 // Layout components
@@ -25,17 +32,24 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/raffle/:id" element={<RaffleDetailPage />} />
+          <Route path="/verify-tickets" element={<VerifyTicketsPage />} />
+          <Route path="/ganadores" element={<WinnersPage />} />
+          <Route path="/ganadores/:id" element={<PastRaffleDetailPage />} />
+          <Route path="/test-purchase" element={<TestPurchasePage />} />
+          <Route path="/form-debug" element={<FormDebugPage />} />
 
           {/* Admin Routes */}
           <Route path="/admin/raffles" element={<AdminRafflesListPage />} />
           <Route path="/admin/raffles/new" element={<CreateRafflePage />} />
           <Route path="/admin/raffles/edit/:id" element={<EditRafflePage />} />
+          <Route path="/admin/payments" element={<AdminPage />} />
+          <Route path="/admin/raffle-management" element={<RaffleManagementPage />} />
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       
-      <WhatsAppButton phoneNumber="+584123456789" />
+      <WhatsAppButton phoneNumber="+58 424 137 8533" />
       
     </div>
   );

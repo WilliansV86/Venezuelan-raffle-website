@@ -4,17 +4,26 @@ const {
   getAllRaffles,
   createRaffle,
   getRaffleById,
-  updateRaffle, // Assuming updateRaffle will be created in controller
-  deleteRaffle  // Assuming deleteRaffle will be created in controller
+  updateRaffle,
+  deleteRaffle,
+  getPastRaffles
 } = require('../controllers/raffleController');
 const { isAdmin } = require('../middleware/authMiddleware');
 
-router.route('/').get(getAllRaffles).post(isAdmin, createRaffle); // Protect POST route
+// General routes - getAllRaffles already filters for active raffles
+router.route('/').get(getAllRaffles).post(isAdmin, createRaffle);
 
+// Active raffles route - using getAllRaffles since it already filters for active raffles
+router.route('/active').get(getAllRaffles);
+
+// Past raffles route - for completed raffles with winners
+router.route('/past').get(getPastRaffles);
+
+// Individual raffle route
 router
   .route('/:id')
   .get(getRaffleById)
-  .put(isAdmin, updateRaffle) // Protect PUT route
-  .delete(isAdmin, deleteRaffle); // Protect DELETE route
+  .put(isAdmin, updateRaffle)
+  .delete(isAdmin, deleteRaffle);
 
 module.exports = router;

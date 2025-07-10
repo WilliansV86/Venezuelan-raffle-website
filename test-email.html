@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Email Function</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Email Function</h1>
+    <p>Use this form to test the email functionality of your server.</p>
+    
+    <div>
+        <h2>1. Check Email Configuration</h2>
+        <button id="checkEmailConfig">Check Email Config</button>
+        <div id="configResult" class="result"></div>
+    </div>
+    
+    <div>
+        <h2>2. Send Test Email</h2>
+        <div>
+            <label for="recipient">Send To:</label>
+            <input type="email" id="recipient" placeholder="your@email.com" />
+        </div>
+        <button id="sendTestEmail">Send Test Email</button>
+        <div id="emailResult" class="result"></div>
+    </div>
+
+    <script>
+        // Check email configuration
+        document.getElementById('checkEmailConfig').addEventListener('click', async () => {
+            try {
+                const configResult = document.getElementById('configResult');
+                configResult.innerHTML = 'Checking email configuration...';
+                configResult.className = 'result';
+                
+                const response = await fetch('http://localhost:5001/api/health/email');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    configResult.innerHTML = `<strong>Success!</strong><br>Email is properly configured.<br>Host: ${data.config.EMAIL_HOST}<br>Port: ${data.config.EMAIL_PORT}<br>User: ${data.config.EMAIL_USER}`;
+                    configResult.className = 'result success';
+                } else {
+                    configResult.innerHTML = `<strong>Error:</strong><br>Email configuration issue.<br>Missing: ${data.missingFields.join(', ')}`;
+                    configResult.className = 'result error';
+                }
+            } catch (error) {
+                document.getElementById('configResult').innerHTML = `<strong>Connection Error:</strong><br>${error.message}<br>Make sure your server is running.`;
+                document.getElementById('configResult').className = 'result error';
+            }
+        });
+        
+        // Send test email
+        document.getElementById('sendTestEmail').addEventListener('click', async () => {
+            const recipient = document.getElementById('recipient').value;
+            
+            if (!recipient) {
+                document.getElementById('emailResult').innerHTML = '<strong>Error:</strong><br>Please enter a recipient email address.';
+                document.getElementById('emailResult').className = 'result error';
+                return;
+            }
+            
+            try {
+                const emailResult = document.getElementById('emailResult');
+                emailResult.innerHTML = 'Sending test email...';
+                emailResult.className = 'result';
+                
+                const response = await fetch('http://localhost:5001/api/email/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ recipient })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    emailResult.innerHTML = `<strong>Success!</strong><br>Test email sent to ${recipient}.<br>Check your inbox (and spam folder).`;
+                    emailResult.className = 'result success';
+                } else {
+                    emailResult.innerHTML = `<strong>Error:</strong><br>${data.message}`;
+                    emailResult.className = 'result error';
+                }
+            } catch (error) {
+                document.getElementById('emailResult').innerHTML = `<strong>Connection Error:</strong><br>${error.message}<br>Make sure your server is running.`;
+                document.getElementById('emailResult').className = 'result error';
+            }
+        });
+    </script>
+</body>
+</html>

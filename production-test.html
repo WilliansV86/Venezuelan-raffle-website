@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Production Feature Test</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1, h2 {
+      color: #1a5276;
+    }
+    .test-card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+    }
+    .test-card h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    button {
+      background-color: #1a5276;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #154360;
+    }
+    #results {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-top: 20px;
+      background-color: #f5f5f5;
+      min-height: 100px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Venezuelan Raffle Website - Production Features Test</h1>
+  <p>This tool tests the production enhancements without requiring a database connection.</p>
+  
+  <div class="test-card">
+    <h2>1. Health Check & Monitoring</h2>
+    <button onclick="testEndpoint('/api/health/ping')">Test Ping</button>
+    <button onclick="testEndpoint('/api/health')">Test Health</button>
+    <button onclick="testEndpoint('/api/admin/monitor/system', true)">Test Admin Monitoring</button>
+  </div>
+  
+  <div class="test-card">
+    <h2>2. Rate Limiting</h2>
+    <button onclick="testRateLimiting('/api/health/ping', 10)">Test Rate Limiting (10 requests)</button>
+  </div>
+  
+  <div class="test-card">
+    <h2>3. Logging</h2>
+    <button onclick="testEndpoint('/api/health/ping?testlog=true')">Generate Log Entry</button>
+    <button onclick="testEndpoint('/this-does-not-exist')">Generate Error Log</button>
+    <button onclick="testEndpoint('/api/admin/monitor/logs', true)">View Recent Logs</button>
+  </div>
+  
+  <div class="test-card">
+    <h2>4. Test Email Service</h2>
+    <div>
+      <label>Email to:</label>
+      <input type="email" id="testEmail" value="test@example.com" style="padding: 8px; width: 250px; margin-right: 10px;">
+      <button onclick="testEmail()">Send Test Email</button>
+    </div>
+  </div>
+  
+  <div id="results">Results will appear here...</div>
+  
+  <script>
+    const API_URL = 'http://localhost:5001';
+    const resultsDiv = document.getElementById('results');
+    
+    function appendResult(message, isError = false) {
+      const timestamp = new Date().toLocaleTimeString();
+      resultsDiv.innerHTML += `\n[${timestamp}] ${isError ? '<span class="error">ERROR: ' + message + '</span>' : '<span class="success">' + message + '</span>'}\n`;
+      resultsDiv.scrollTop = resultsDiv.scrollHeight;
+    }
+    
+    function clearResults() {
+      resultsDiv.innerHTML = '';
+    }
+    
+    async function testEndpoint(endpoint, requiresAuth = false) {
+      resultsDiv.innerHTML = 'Sending request...';
+      
+      try {
+        const headers = {};
+        if (requiresAuth) {
+          const adminKey = prompt('Enter admin key for authenticated endpoints:');
+          if (!adminKey) return appendResult('Admin key required for this endpoint', true);
+          headers['Authorization'] = `Bearer ${adminKey}`;
+        }
+        
+        const response = await fetch(`${API_URL}${endpoint}`, { headers });
+        const data = await response.json();
+        
+        resultsDiv.innerHTML = 'Response from ' + endpoint + ':\n' + JSON.stringify(data, null, 2);
+        appendResult(`Successfully called ${endpoint}`);
+        
+      } catch (error) {
+        appendResult(`Failed to call ${endpoint}: ${error.message}`, true);
+      }
+    }
+    
+    async function testRateLimiting(endpoint, count) {
+      clearResults();
+      appendResult(`Starting rate limit test with ${count} requests to ${endpoint}`);
+      
+      const results = { success: 0, limited: 0, errors: 0 };
+      const startTime = Date.now();
+      
+      for (let i = 0; i < count; i++) {
+        try {
+          const response = await fetch(`${API_URL}${endpoint}`);
+          
+          if (response.status === 429) {
+            results.limited++;
+            appendResult(`Request ${i+1}: Rate limited`, true);
+          } else if (response.ok) {
+            results.success++;
+            appendResult(`Request ${i+1}: Success`);
+          } else {
+            results.errors++;
+            appendResult(`Request ${i+1}: Error status ${response.status}`, true);
+          }
+        } catch (error) {
+          results.errors++;
+          appendResult(`Request ${i+1}: Failed - ${error.message}`, true);
+        }
+        
+        // Small delay to make it easier to see
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      appendResult(`\nRate limit test complete in ${totalTime}s:\nSuccesses: ${results.success}\nRate Limited: ${results.limited}\nErrors: ${results.errors}`);
+    }
+    
+    async function testEmail() {
+      const email = document.getElementById('testEmail').value;
+      if (!email) {
+        return appendResult('Please enter an email address', true);
+      }
+      
+      resultsDiv.innerHTML = 'Sending test email...';
+      
+      try {
+        const adminKey = prompt('Enter admin key for sending test email:');
+        if (!adminKey) return appendResult('Admin key required for this endpoint', true);
+        
+        const response = await fetch(`${API_URL}/api/admin/monitor/test-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminKey}`
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          resultsDiv.innerHTML = 'Email test response:\n' + JSON.stringify(data, null, 2);
+          appendResult(`Test email sent to ${email}`);
+        } else {
+          appendResult(`Failed to send email: ${data.message || 'Unknown error'}`, true);
+        }
+      } catch (error) {
+        appendResult(`Error sending test email: ${error.message}`, true);
+      }
+    }
+  </script>
+</body>
+</html>

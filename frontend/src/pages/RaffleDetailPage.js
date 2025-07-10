@@ -1,208 +1,300 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import axios from 'axios';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 
+// --- Helper Components ---
 
-// Import payment logos
-
-
-// This is a placeholder for a Terms and Conditions Modal
-const TermsModal = ({ onClose }) => (
+const SuccessModal = ({ onClose }) => (
   <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-    <div className="bg-gray-900 border border-gray-700 rounded-xl p-8 max-w-2xl w-full text-gray-300">
-      <h2 className="text-3xl font-bold text-white mb-6">Términos y Condiciones</h2>
-      <div className="space-y-3 text-gray-400">
-        <p>1.- Los números disponibles para la compra en cada una de nuestros sorteos se especificarán en la página de detalles correspondientes a cada sorteo.</p>
-        <p>2.- Los tickets serán enviados en un lapso de 24 horas. Tenemos un alto volumen de pagos por procesar.</p>
-        <p>3.- Solo podrán participar en nuestros sorteos personas naturales mayores de 18 años con nacionalidad venezolana o extranjeros que residan legalmente en Venezuela.</p>
-        <p>4.- Los premios deberán ser retirados en persona en la ubicación designada para cada Sorteo.</p>
-        <p>5.- La compra mínima requerida para participar en nuestros sorteos es de dos tickets.</p>
-        <p>6.- Para reclamar tu premio tienes un lapso de 72 horas.</p>
-        <p>7.- Los ganadores aceptan aparecer en el contenido audio visual del sorteo mostrando su presencia en las redes y entrega de los premios. Esto es OBLIGATORIO.</p>
+    <div className="bg-gray-800 border border-blue-500 rounded-lg p-8 max-w-2xl w-full text-white">
+      <div className="flex justify-center mb-4">
+        <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
       </div>
-      <button onClick={onClose} className="mt-8 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-2 px-6 rounded-full hover:scale-105 transform transition duration-300">
-        Aceptar
-      </button>
+      <h2 className="text-3xl font-bold text-yellow-400 mb-6 text-center">¡Compra Exitosa!</h2>
+      <div className="space-y-3 text-gray-400">
+        <p className="text-lg">Tu compra ha sido procesada correctamente.</p>
+        <p>Una vez que tu pago sea confirmado, recibirás tus números de ticket por correo electrónico dentro de las próximas 24 horas.</p>
+      </div>
+      <div className="flex justify-center mt-8">
+        <button onClick={onClose} className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-black font-bold py-2 px-6 rounded-full hover:scale-105 transform transition duration-300">
+          Cerrar
+        </button>
+      </div>
     </div>
   </div>
 );
 
+const TermsModal = ({ onClose }) => (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-800 border border-cyan-500 rounded-lg p-6 max-w-3xl w-full text-white relative">
+            <h2 className="text-2xl font-bold text-cyan-400 mb-4">Términos y Condiciones</h2>
+            <div className="space-y-2 text-gray-300 max-h-[70vh] overflow-y-auto pr-2">
+                <p>1. El participante debe ser mayor de edad.</p>
+                <p>2. El pago debe ser verificado antes de la asignación de tickets.</p>
+                <p>3. Los tickets no son reembolsables.</p>
+                <p>4. El ganador será contactado a través de los datos proporcionados.</p>
+            </div>
+            <button onClick={onClose} className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                X
+            </button>
+        </div>
+    </div>
+);
+
+
+// --- Main Component ---
+
 const RaffleDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+
+  // Core State
+  const [raffle, setRaffle] = useState(null);
+  const [raffleStats, setRaffleStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    buyerName: '',
+    email: '',
+    phone: '',
+  });
+  const [ticketCount, setTicketCount] = useState(1);
   const [selectedPayment, setSelectedPayment] = useState('pago-movil');
-  const [ticketCount, setTicketCount] = useState(2);
-  const [showTerms, setShowTerms] = useState(true);
-  const [progress, setProgress] = useState(90); // Set to 90% to show red bar (<25% left)
   const [paymentProof, setPaymentProof] = useState(null);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
-  const handlePaymentChange = (newPayment) => {
-    setSelectedPayment(newPayment);
-    if (newPayment === 'pago-movil') {
-      setTicketCount(2);
-    } else { // For Zelle and Binance
-      setTicketCount(10);
+  // --- Data Fetching ---
+  useEffect(() => {
+    const fetchRaffleAndStats = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [raffleRes, statsRes] = await Promise.all([
+          axios.get(`http://localhost:5100/api/raffles/${id}`),
+          axios.get(`http://localhost:5100/api/raffles/${id}/stats`),
+        ]);
+
+        setRaffle(raffleRes.data);
+        if (statsRes.data.success) {
+          setRaffleStats(statsRes.data.data);
+        }
+
+        const minTickets = raffleRes.data.minTicketsPerPurchase?.['pago-movil'] || 1;
+        setTicketCount(minTickets);
+
+      } catch (err) {
+        setError('No se pudo cargar la información del sorteo. Por favor, intente de nuevo.');
+        console.error('Fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRaffleAndStats();
+  }, [id]);
+
+  // --- Effects ---
+  useEffect(() => {
+    if (raffle) {
+      const minTickets = raffle.minTicketsPerPurchase?.[selectedPayment] || 1;
+      if (ticketCount < minTickets) {
+        setTicketCount(minTickets);
+      }
+    }
+  }, [selectedPayment, raffle, ticketCount]);
+
+  // --- Event Handlers ---
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePurchase = async (e) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!formData.buyerName || !formData.email || !formData.phone) {
+        setFormError('Por favor, complete todos los campos de información del comprador.');
+        return;
+    }
+    if (!paymentProof) {
+      setFormError('Por favor, suba el comprobante de pago.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const submissionData = new FormData();
+    submissionData.append('raffleId', id);
+    submissionData.append('quantity', ticketCount);
+    submissionData.append('paymentMethod', selectedPayment);
+    submissionData.append('paymentProof', paymentProof);
+    submissionData.append('buyerName', formData.buyerName);
+    submissionData.append('email', formData.email);
+    submissionData.append('phone', formData.phone);
+
+    try {
+      const response = await axios.post('http://localhost:5100/api/tickets/purchase', submissionData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data.success) {
+        setShowSuccess(true);
+      } else {
+        setFormError(response.data.message || 'Ocurrió un error al procesar la compra.');
+      }
+    } catch (err) {
+      setFormError(err.response?.data?.message || 'Error de conexión. No se pudo completar la compra.');
+      console.error('Purchase error:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const paymentDetails = {
-    'pago-movil': '0191 - BNC(Banco Nacional de Credito) J506607131 04120727504',
-    'zelle': 'Business@wvaaenterprise.com',
-    'binance': 'Please provide Binance Pay details'
+  const closeSuccessModal = () => {
+    setShowSuccess(false);
+    navigate('/');
   };
 
-  const minTickets = selectedPayment === 'pago-movil' ? 2 : 10;
-
-  const handleIncrement = () => setTicketCount(prev => prev + 1);
-  const handleDecrement = () => {
-    setTicketCount(prev => (prev > minTickets ? prev - 1 : minTickets));
-  };
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setPaymentProof(e.target.files[0]);
+  // --- Derived State & Helpers ---
+  const minTickets = raffle?.minTicketsPerPurchase?.[selectedPayment] || 1;
+  const isZelleOrBinance = ['zelle', 'binance'].includes(selectedPayment);
+  const ticketPrice = isZelleOrBinance ? (raffle?.ticketPriceUSD || 0) : (raffle?.ticketPriceBS || 0);
+  const currency = isZelleOrBinance ? 'USD' : 'VES';
+  
+  const formatCurrency = (amount, currencyCode) => {
+    if (currencyCode === 'VES') {
+      return `Bs. ${Number(amount).toFixed(2)}`;
     }
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
-  const getProgressBarColor = () => {
-    const remaining = 100 - progress;
-    if (remaining < 25) return 'bg-gradient-to-r from-red-500 to-red-700'; // Less than 25% left
-    if (remaining <= 80) return 'bg-gradient-to-r from-yellow-400 to-yellow-600'; // 25% - 80% left
-    return 'bg-gradient-to-r from-green-400 to-green-600'; // More than 80% left
-  };
+  const ticketPriceDisplay = formatCurrency(ticketPrice, currency);
+  const totalAmountDisplay = formatCurrency(ticketPrice * ticketCount, currency);
+  const isPurchaseDisabled = ticketCount < minTickets || !paymentProof || isSubmitting || !formData.buyerName || !formData.email || !formData.phone;
+  const progressPercent = raffleStats?.totalTickets > 0 ? (raffleStats.soldTickets / raffleStats.totalTickets) * 100 : 0;
 
-  const ticketPriceUSD = 1.5; // Correct ticket price
-  const exchangeRate = 160; // Placeholder exchange rate
+  // --- Render Logic ---
+  if (loading) {
+    return <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center"><p>Cargando...</p></div>;
+  }
+
+  if (error) {
+    return <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center"><p className="text-red-500">{error}</p></div>;
+  }
+
+  if (!raffle) {
+    return <div className="bg-gray-900 text-white min-h-screen flex items-center justify-center"><p>Sorteo no encontrado.</p></div>; 
+  }
 
   return (
-    <div className="min-h-screen bg-hero-pattern bg-cover bg-center bg-fixed">
-      <div className="min-h-screen w-full bg-gradient-to-br from-gray-900/95 via-blue-900/80 to-black/95 pt-24 pb-12">
-        <div className="container mx-auto px-4">
-          <div className="bg-black/40 backdrop-blur-xl rounded-2xl p-8 border border-gray-700/50">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* Left Side: Ticket Selection & Payment */}
-              <div className="text-white">
-                <h2 className="text-3xl font-bold mb-6">Selecciona tus Tickets</h2>
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-cyan-400">Quedan {100 - progress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2.5">
+    <>
+      {showSuccess && <SuccessModal onClose={closeSuccessModal} />}
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      <div className="bg-gray-900 text-white min-h-screen p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
+            <div className="mb-8">
+                <Link to="/" className="text-cyan-400 hover:text-white transition">← Volver a la lista de sorteos</Link>
+            </div>
+          <div className="flex flex-col md:flex-row md:space-x-8">
+            {/* Left Column: Image, Stats, Description */}
+            <div className="w-full md:w-1/2">
+              <img src={raffle.imageUrl || '/default-raffle-image.jpg'} alt={raffle.title} className="w-full h-auto rounded-lg shadow-lg mb-4" />
+              
+              {raffleStats && raffleStats.totalTickets > 0 && (
+                <div className="bg-gray-800 p-4 rounded-lg mb-4">
+                  <h3 className="font-bold text-lg mb-2">Progreso de la Rifa</h3>
+                  <div className="w-full bg-gray-700 rounded-full h-4 mb-2">
                     <div 
-                      className={`h-2.5 rounded-full ${getProgressBarColor()}`}
-                      style={{ width: `${progress}%` }}
+                      className="bg-green-500 h-4 rounded-full transition-all duration-500"
+                      style={{ width: `${progressPercent}%` }}
                     ></div>
                   </div>
-                </div>
-                <div className="flex items-center gap-4 mb-4">
-                  <button onClick={handleDecrement} className="bg-red-600 hover:bg-red-700 text-white font-bold text-2xl w-12 h-12 rounded-lg transition">-</button>
-                  <input type="text" readOnly value={ticketCount} className="bg-gray-800 border border-gray-600 text-white text-center text-2xl font-bold w-24 h-12 rounded-lg" />
-                  <button onClick={handleIncrement} className="bg-green-600 hover:bg-green-700 text-white font-bold text-2xl w-12 h-12 rounded-lg transition">+</button>
-                </div>
-                <p className="text-gray-400 mb-8">Cantidad mínima permitida: {minTickets}</p>
-
-                <h3 className="text-2xl font-bold mb-6 text-center">Métodos de Pago</h3>
-                <div className="flex justify-center items-start gap-8 mb-6">
-                  {/* Pago Movil */}
-                  <div
-                    className={`text-center w-24 cursor-pointer transition-all duration-300 ${selectedPayment !== 'pago-movil' ? 'grayscale opacity-50 hover:grayscale-0 hover:opacity-100' : ''}`}
-                    onClick={() => handlePaymentChange('pago-movil')}
-                  >
-                    <div className={`bg-white rounded-full p-1 w-16 h-16 mx-auto flex items-center justify-center border-2 ${selectedPayment === 'pago-movil' ? 'border-blue-500' : 'border-gray-400'}`}>
-                        <img src="/images/logo-banesco.png" alt="Pago Movil BNC" className="h-10 w-auto object-contain"/>
-                    </div>
-                    <p className="mt-2 text-sm font-semibold">Pago Móvil</p>
-                  </div>
-
-                  {/* Zelle */}
-                  <div
-                    className={`text-center w-24 cursor-pointer transition-all duration-300 ${selectedPayment !== 'zelle' ? 'grayscale opacity-50 hover:grayscale-0 hover:opacity-100' : ''}`}
-                    onClick={() => handlePaymentChange('zelle')}
-                  >
-                     <div className={`bg-white rounded-full p-1 w-16 h-16 mx-auto flex items-center justify-center border-2 ${selectedPayment === 'zelle' ? 'border-purple-500' : 'border-purple-400'}`}>
-                        <img src="/images/logo-zelle.svg" alt="Zelle" className="h-10 w-auto object-contain"/>
-                    </div>
-                    <p className="mt-2 text-sm font-semibold">Zelle</p>
-                  </div>
-
-                  {/* Binance */}
-                  <div
-                    className={`text-center w-24 cursor-pointer transition-all duration-300 ${selectedPayment !== 'binance' ? 'grayscale opacity-50 hover:grayscale-0 hover:opacity-100' : ''}`}
-                    onClick={() => handlePaymentChange('binance')}
-                  >
-                    <div className={`bg-white rounded-full p-1 w-16 h-16 mx-auto flex items-center justify-center border-2 ${selectedPayment === 'binance' ? 'border-yellow-500' : 'border-yellow-400'}`}>
-                        <img src="/images/logo-binance.svg" alt="Binance" className="h-10 w-auto object-contain"/>
-                      </div>
-                    <p className="mt-2 text-sm font-semibold">Binance</p>
+                  <div className="flex justify-between text-sm text-gray-300">
+                    <span>Vendidos: {raffleStats.soldTickets}</span>
+                    <span>Disponibles: {raffleStats.remainingTickets}</span>
                   </div>
                 </div>
-                <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 text-center min-h-[60px] flex items-center justify-center">
-                  <p className="font-mono text-lg tracking-wider">{paymentDetails[selectedPayment]}</p>
-                </div>
-              </div>
+              )}
 
-              {/* Right Side: User Form */}
-              <div className="text-white">
-                <div className="bg-yellow-400 text-gray-900 text-center p-3 rounded-t-lg">
-                  {selectedPayment === 'pago-movil' ? (
-                    <>
-                      <p className="font-bold text-xl">MONTO BS A TRANSFERIR</p>
-                      <p className="font-bold text-3xl">{(ticketCount * ticketPriceUSD * exchangeRate).toFixed(2)} Bs.</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-bold text-xl">MONTO USD A TRANSFERIR</p>
-                      <p className="font-bold text-3xl">{(ticketCount * ticketPriceUSD).toFixed(2)} USD</p>
-                    </>
-                  )}
-                </div>
-                <form className="bg-gray-800/50 p-8 rounded-b-lg border-x border-b border-gray-700">
-                  <div className="space-y-4">
-                    <input type="text" placeholder="Nombre" className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-                    <input type="text" placeholder="Apellido" className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-                    <input type="email" placeholder="Correo Electrónico" className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-                    <input type="text" placeholder="Cédula de Identidad" className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-                    <input type="text" placeholder="Número de WhatsApp" className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" />
-                    <input 
-                      type="text" 
-                      placeholder={
-                        selectedPayment === 'pago-movil' 
-                          ? "Referencia de Pago" 
-                          : selectedPayment === 'zelle' 
-                          ? "Titular de la cuenta Zelle" 
-                          : "Titular de la cuenta"
-                      }
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-500" 
-                    />
-                    <div>
-                        <label htmlFor="payment-proof" className="w-full bg-gray-700 border-2 border-dashed border-gray-500 rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-600 transition-colors duration-300">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="text-gray-400 text-sm font-medium">{paymentProof ? paymentProof.name : 'Adjuntar Comprobante'}</span>
-                          <span className="text-gray-500 text-xs mt-1">PNG, JPG, JPEG</span>
-                        </label>
-                        <input id="payment-proof" type="file" className="hidden" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg" />
-                      </div>
-                    <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold py-3 rounded-lg hover:scale-105 transform transition duration-300">
-                      Comprar Tickets
-                    </button>
-                  </div>
-                </form>
-              </div>
+              <h1 className="text-3xl font-bold">{raffle.title}</h1>
+              <p className="text-gray-400 mt-2">{raffle.description}</p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col md:flex-row items-center justify-between mt-12">
-                <button onClick={() => setShowTerms(true)} className="text-cyan-400 hover:text-white transition mb-4 md:mb-0">Ver Términos y Condiciones</button>
-                <div className="flex items-center gap-4">
-                    <Link to="/" className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full transition">Volver</Link>
-                    <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full transition">Comprar</button>
+            {/* Right Column: Purchase Form */}
+            <div className="w-full md:w-1/2 mt-8 md:mt-0">
+              <form onSubmit={handlePurchase} className="bg-gray-800 p-6 rounded-lg shadow-lg space-y-4">
+                <h2 className="text-2xl font-bold mb-4">Completa tu Compra</h2>
+                
+                {/* Buyer Info */}
+                <div>
+                  <label className="block mb-2">Nombre Completo</label>
+                  <input type="text" name="buyerName" value={formData.buyerName} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2" required />
                 </div>
+                <div>
+                  <label className="block mb-2">Correo Electrónico</label>
+                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2" required />
+                </div>
+                <div>
+                  <label className="block mb-2">Teléfono (WhatsApp)</label>
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-gray-700 border border-gray-600 rounded p-2" required />
+                </div>
+
+                <hr className="border-gray-700" />
+
+                {/* Purchase Details */}
+                <div>
+                  <p className="text-lg">Precio por ticket: <span className="font-bold text-green-400">{ticketPriceDisplay}</span></p>
+                </div>
+
+                <div>
+                  <label className="block mb-2">Cantidad de tickets (Mínimo: {minTickets})</label>
+                  <input type="number" value={ticketCount} onChange={(e) => setTicketCount(Number(e.target.value))} min={minTickets} className="w-full bg-gray-700 border border-gray-600 rounded p-2" />
+                </div>
+
+                <div>
+                  <label className="block mb-2">Método de pago</label>
+                  <select value={selectedPayment} onChange={(e) => setSelectedPayment(e.target.value)} className="w-full bg-gray-700 border border-gray-600 rounded p-2">
+                    <option value="pago-movil">Pago Móvil (Bolívares)</option>
+                    <option value="zelle">Zelle (USD)</option>
+                    <option value="binance">Binance (USD)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block mb-2">Comprobante de pago</label>
+                  <input type="file" onChange={(e) => setPaymentProof(e.target.files[0])} accept="image/png, image/jpeg" className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required />
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-xl font-bold">Total a pagar: {totalAmountDisplay}</p>
+                </div>
+
+                <button type="submit" disabled={isPurchaseDisabled} className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded font-bold disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors">
+                  {isSubmitting ? 'Procesando...' : 'Comprar Ahora'}
+                </button>
+
+                {formError && <p className="text-red-500 mt-2 text-center">{formError}</p>}
+              </form>
             </div>
           </div>
+            <div className="text-center mt-8">
+                <button onClick={() => setShowTerms(true)} className="text-cyan-400 hover:text-white transition">
+                    Ver Términos y Condiciones
+                </button>
+            </div>
         </div>
       </div>
-      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
-    </div>
+    </>
   );
 };
 

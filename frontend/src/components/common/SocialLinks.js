@@ -3,10 +3,10 @@ import { FaInstagram, FaTiktok, FaFacebook, FaWhatsapp } from 'react-icons/fa';
 
 const SocialLinks = () => {
   const socialMedia = [
-    { icon: <FaInstagram />, href: 'https://instagram.com', name: 'Instagram', color: 'text-[#E1306C]' },
-    { icon: <FaTiktok />, href: 'https://tiktok.com', name: 'TikTok', color: 'text-white' }, // Using white for TikTok for best visibility on a dark background
-    { icon: <FaFacebook />, href: 'https://facebook.com', name: 'Facebook', color: 'text-[#1877F2]' },
-    { icon: <FaWhatsapp />, href: 'https://wa.me/1234567890', name: 'WhatsApp', color: 'text-[#25D366]' }, // Replace with your WhatsApp number
+    { icon: <FaInstagram />, href: 'https://instagram.com/tusuerteestaaquive', name: 'Instagram', color: 'text-[#E1306C]' },
+    { icon: <FaTiktok />, href: 'https://tiktok.com/@tusuerte.estaaqui', name: 'TikTok', color: 'text-white' }, // Using white for TikTok for best visibility on a dark background
+    { icon: <FaFacebook />, href: 'https://www.facebook.com/profile.php?id=Tusuerte%20Estaaqui', name: 'Facebook', color: 'text-[#1877F2]' },
+    { icon: <FaWhatsapp />, href: 'https://wa.me/584241378533', name: 'WhatsApp', color: 'text-[#25D366]' }, // WhatsApp number updated
   ];
 
   return (

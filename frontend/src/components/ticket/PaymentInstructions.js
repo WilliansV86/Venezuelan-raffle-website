@@ -120,9 +120,9 @@ const PaymentInstructions = ({ purchaseData, orderId, onUploadComplete, onBack }
               <h5 className="font-medium">Pago Móvil (Venezuela)</h5>
             </div>
             <ul className="list-disc pl-6 text-sm">
-              <li>Banco: Banesco</li>
-              <li>Teléfono: 0414-1234567</li>
-              <li>CI: V-12345678</li>
+              <li>Banco: Provincial (0108)</li>
+              <li>Teléfono: 04241378533</li>
+              <li>CI: V-15605407</li>
               <li>Monto: Bs. equivalentes a ${purchaseData.totalPrice.toFixed(2)}</li>
             </ul>
           </div>
