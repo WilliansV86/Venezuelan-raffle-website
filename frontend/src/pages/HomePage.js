@@ -1,3 +1,4 @@
+/* Version4: Fixed background image implementation with proper URL path and overlay gradient */
 import React, { useState, useEffect } from 'react';
 import RaffleCard from '../components/raffle/RaffleCard';
 import SocialLinks from '../components/common/SocialLinks';
