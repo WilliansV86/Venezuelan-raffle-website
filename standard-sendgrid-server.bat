@@ -17,7 +17,7 @@ set MONGO_URI=mongodb+srv://WilliansV86:Ve17767135..!!@cluster0.adlajpr.mongodb.
 set ADMIN_KEY=test-admin-key-123
 
 REM SendGrid Email Configuration
-set SENDGRID_API_KEY=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
+set SENDGRID_API_KEY=API_KEY_REMOVED_FOR_SECURITY
 set EMAIL_FROM=tusuerteestaaquive@gmail.com
 set ADMIN_EMAIL=tusuerteestaaquive@gmail.com
 set EMAIL_PROVIDER=sendgrid

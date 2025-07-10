@@ -9,7 +9,7 @@ set NODE_ENV=development
 
 REM Email configuration
 set EMAIL_PROVIDER=sendgrid
-set SENDGRID_API_KEY=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
+set SENDGRID_API_KEY=API_KEY_REMOVED_FOR_SECURITY
 set EMAIL_FROM=tusuerteestaaquive@gmail.com
 set ADMIN_EMAIL=tusuerteestaaquive@gmail.com
 
