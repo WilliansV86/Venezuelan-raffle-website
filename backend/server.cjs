@@ -27,6 +27,7 @@ connectDB().then(() => {
   // Enhanced CORS configuration for production and development
   const allowedOrigins = [
     'https://venezuelan-raffle-admin.windsurf.build',
+    'https://lively-tulumba-7e657e.netlify.app',
     'http://localhost:3000' // for local frontend development
   ];
 
