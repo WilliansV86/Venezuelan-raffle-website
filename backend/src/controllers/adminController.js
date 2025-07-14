@@ -45,8 +45,15 @@ const verifyAdminKey = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/raffles
 // @access  Private/Admin
 const getAdminRaffles = asyncHandler(async (req, res) => {
-  const raffles = await Raffle.find({});
-  res.json(raffles);
+  console.log('Attempting to fetch raffles for admin...');
+  try {
+    const raffles = await Raffle.find({});
+    console.log(`Successfully fetched ${raffles.length} raffles.`);
+    res.json(raffles);
+  } catch (error) {
+    console.error('Error in getAdminRaffles:', error);
+    res.status(500).json({ message: 'Server error while fetching raffles.' });
+  }
 });
 
 // @desc    Get all transactions for admin
