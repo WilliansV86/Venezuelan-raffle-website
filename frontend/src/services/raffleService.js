@@ -4,7 +4,7 @@ const raffleService = {
   // Get all active raffles
   getActiveRaffles: async () => {
     try {
-      const response = await api.get('/raffles');
+      const response = await api.get('/posts'); // Test endpoint
       return response.data;
     } catch (error) {
       console.error('Error fetching active raffles:', error);
@@ -15,7 +15,7 @@ const raffleService = {
   // Get past raffles
   getPastRaffles: async () => {
     try {
-      const response = await api.get('/raffles/past');
+      const response = await api.get('/posts'); // Test endpoint
       return response.data;
     } catch (error) {
       console.error('Error fetching past raffles:', error);

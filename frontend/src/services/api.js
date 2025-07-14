@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://tu-suerte-esta-aqui-ve.onrender.com/api',
+  baseURL: 'https://jsonplaceholder.typicode.com', // Public test API
   timeout: 30000, // 30-second timeout for cold starts
   timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend está funcionando.'
 });
