@@ -64,4 +64,29 @@ const getAdminTransactions = asyncHandler(async (req, res) => {
   res.json(transactions);
 });
 
-module.exports = { authAdmin, getAdminRaffles, getAdminTransactions, verifyAdminKey };
+// @desc    Create a raffle
+// @route   POST /api/admin/raffles
+// @access  Private/Admin
+const createRaffle = asyncHandler(async (req, res) => {
+  const { name, price, priceBs, maxTickets, imageUrl } = req.body;
+
+  // Set a default draw date to 7 days from now if not provided
+  const drawDate = new Date();
+  drawDate.setDate(drawDate.getDate() + 7);
+
+  const raffle = new Raffle({
+    name,
+    price,
+    priceBS: priceBs, // Corrected field name
+    maxTickets,
+    image: imageUrl, // Corrected field name
+    drawDate, // Added required field
+    status: 'draft',
+    ticketsSold: 0, // Corrected field name
+  });
+
+  const createdRaffle = await raffle.save();
+  res.status(201).json(createdRaffle);
+});
+
+module.exports = { authAdmin, getAdminRaffles, createRaffle, getAdminTransactions, verifyAdminKey };

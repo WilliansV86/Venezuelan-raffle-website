@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FaTimes } from 'react-icons/fa';
 
 const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -9,65 +10,104 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
     setIsSubmitting(true);
     await onUpdateStatus(transaction._id, newStatus);
     setIsSubmitting(false);
-    onClose(); 
+    // Do not close on update, allow user to see result
   };
 
-  const detailItemStyle = "py-2 border-b border-gray-700";
-  const labelStyle = "font-semibold text-gray-400";
-  const valueStyle = "text-white";
+  const getStatusBadge = (status) => {
+    const baseStyle = "px-3 py-1 text-sm font-medium rounded-full inline-block";
+    switch (status) {
+      case 'approved':
+        return <span className={`${baseStyle} bg-green-500/20 text-green-300`}>Aprobado</span>;
+      case 'pending':
+        return <span className={`${baseStyle} bg-yellow-500/20 text-yellow-300`}>Pendiente</span>;
+      case 'rejected':
+        return <span className={`${baseStyle} bg-red-500/20 text-red-300`}>Rechazado</span>;
+      default:
+        return <span className={`${baseStyle} bg-gray-500/20 text-gray-300`}>{status}</span>;
+    }
+  };
+
+  const DetailItem = ({ label, value, mono = false }) => (
+    <div>
+      <p className="text-sm text-gray-400">{label}</p>
+      <p className={`text-lg text-white ${mono ? 'font-mono' : ''}`}>{value || 'N/A'}</p>
+    </div>
+  );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50" onClick={onClose}>
-      <div className="bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl m-4 relative" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-white text-2xl">&times;</button>
-        
-        <h2 className="text-2xl font-bold mb-4 text-cyan-400 font-luckiest-guy">Detalles de la Transacción</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-6">
-          <div className={detailItemStyle}><span className={labelStyle}>ID:</span> <span className={`${valueStyle} font-mono text-sm`}>{transaction._id}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Rifa:</span> <span className={valueStyle}>{transaction.raffle?.name || 'No disponible'}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Comprador:</span> <span className={valueStyle}>{transaction.buyerName}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Email:</span> <span className={valueStyle}>{transaction.buyerEmail}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Monto (USD):</span> <span className={valueStyle}>${transaction.amountUSD}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Monto (Bs.):</span> <span className={valueStyle}>{transaction.amountBs || 'N/A'}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Método de Pago:</span> <span className={valueStyle}>{transaction.paymentMethod}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Referencia:</span> <span className={`${valueStyle} font-mono text-sm`}>{transaction.paymentReference || 'N/A'}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Fecha:</span> <span className={valueStyle}>{new Date(transaction.createdAt).toLocaleString()}</span></div>
-          <div className={detailItemStyle}><span className={labelStyle}>Estado:</span> <span className={valueStyle}>{transaction.status}</span></div>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50 p-4" onClick={onClose}>
+      <div className="bg-gray-800/80 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex justify-between items-start p-6 border-b border-gray-700">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Detalle de Transacción</h2>
+            <p className="text-sm text-gray-400 font-mono">ID: {transaction._id}</p>
+          </div>
+          {getStatusBadge(transaction.status)}
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <FaTimes size={24} />
+          </button>
         </div>
 
-        <div className="mb-4">
-          <h3 className="text-lg font-bold mb-2 text-gray-300">Tickets Comprados ({transaction.tickets.length})</h3>
-          <div className="flex flex-wrap gap-2">
-            {transaction.tickets.map(ticket => (
-              <span key={ticket} className="bg-cyan-600 text-white font-bold px-3 py-1 rounded-full text-sm">{ticket}</span>
-            ))}
+        {/* Body */}
+        <div className="p-6 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Left Column: Buyer & Raffle Info */}
+            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              <DetailItem label="Comprador" value={transaction.buyerName} />
+              <DetailItem label="Email" value={transaction.buyerEmail} />
+              <DetailItem label="WhatsApp" value={transaction.participantInfo?.whatsapp} />
+              <DetailItem label="Rifa" value={transaction.raffle?.name} />
+              <DetailItem label="Monto (USD)" value={`$${transaction.amountUSD}`} />
+              <DetailItem label="Método de Pago" value={transaction.paymentMethod} />
+              <DetailItem label="Referencia de Pago" value={transaction.paymentReference} mono />
+              <DetailItem label="Fecha" value={new Date(transaction.createdAt).toLocaleString()} />
+            </div>
+
+            {/* Right Column: Screenshot */}
+            {transaction.paymentScreenshot && (
+              <div className="text-center">
+                <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
+                <a href={transaction.paymentScreenshot} target="_blank" rel="noopener noreferrer" className="block group">
+                  <img 
+                    src={transaction.paymentScreenshot} 
+                    alt="Comprobante de pago" 
+                    className="w-full rounded-lg border-2 border-gray-600 group-hover:border-cyan-400 transition-all duration-300 transform group-hover:scale-105"
+                  />
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Tickets */}
+          <div className="mt-8 pt-6 border-t border-gray-700">
+            <h3 className="text-lg font-semibold mb-3 text-gray-300">Tickets Comprados ({transaction.tickets.length})</h3>
+            <div className="flex flex-wrap gap-3">
+              {transaction.tickets.map(ticket => (
+                <span key={ticket} className="bg-cyan-500/20 text-cyan-300 font-mono text-base font-bold px-4 py-2 rounded-md">
+                  {ticket}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        {transaction.paymentScreenshot && (
-          <div className="mb-6">
-            <h3 className="text-lg font-bold mb-2 text-gray-300">Comprobante de Pago</h3>
-            <a href={transaction.paymentScreenshot} target="_blank" rel="noopener noreferrer">
-              <img src={transaction.paymentScreenshot} alt="Comprobante" className="max-w-xs mx-auto rounded-lg border-2 border-gray-600" />
-            </a>
-          </div>
-        )}
-
-        <div className="flex justify-end space-x-4 pt-4 border-t border-gray-700">
+        {/* Footer */}
+        <div className="flex justify-end items-center space-x-4 p-6 bg-gray-900/50 border-t border-gray-700 rounded-b-2xl">
+          <p className="text-sm text-gray-400 mr-auto">Actualizar estado de la transacción:</p>
           <button 
             onClick={() => handleStatusUpdate('rejected')} 
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50"
+            className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting || transaction.status === 'rejected'}
           >
-            Rechazar
+            {isSubmitting ? '...' : 'Rechazar'}
           </button>
           <button 
             onClick={() => handleStatusUpdate('approved')} 
-            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg disabled:opacity-50"
+            className="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting || transaction.status === 'approved'}
           >
-            Aprobar
+            {isSubmitting ? '...' : 'Aprobar'}
           </button>
         </div>
       </div>

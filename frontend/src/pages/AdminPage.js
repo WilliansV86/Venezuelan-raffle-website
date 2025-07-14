@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 // Import the refactored components
-import RaffleEditor from '../components/admin/RaffleEditor';
+
 import RaffleStatusManager from '../components/admin/RaffleStatusManager';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
@@ -12,12 +12,14 @@ import ErrorAlert from '../components/common/ErrorAlert';
 // Transaction components
 import TransactionTable from '../components/admin/TransactionTable';
 import TransactionDetailModal from '../components/admin/TransactionDetailModal';
+import { FaReceipt, FaCube, FaSync } from 'react-icons/fa';
 
 const AdminPage = () => {
-  const { adminInfo, setAdminInfo, logout } = useAuth();
+  const { auth, logout } = useAuth();
+  const adminInfo = auth.adminInfo;
   const navigate = useNavigate();
 
-  const [view, setView] = useState('raffles'); // 'raffles' or 'transactions'
+  const [view, setView] = useState('transactions'); // Default to transactions view
 
   // State for raffles
   const [raffles, setRaffles] = useState([]);
@@ -30,24 +32,13 @@ const AdminPage = () => {
   const [transactionsError, setTransactionsError] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  // Authentication check effect
+    // Effect to redirect if not authenticated
   useEffect(() => {
-    const savedInfo = localStorage.getItem('adminInfo');
-    if (savedInfo) {
-      try {
-        const parsed = JSON.parse(savedInfo);
-        if (parsed && parsed.token) {
-          setAdminInfo(parsed);
-        } else {
-          navigate('/admin/login');
-        }
-      } catch (err) {
-        navigate('/admin/login');
-      }
-    } else {
-      navigate('/admin/login');
+    // The AuthProvider is the source of truth. If it has no user, redirect.
+    if (adminInfo === null) {
+      navigate('/admin/login', { replace: true });
     }
-  }, [navigate, setAdminInfo]);
+  }, [adminInfo, navigate]);
 
   // Data fetching functions
   const fetchRaffles = useCallback(async () => {
@@ -131,9 +122,9 @@ const AdminPage = () => {
     setSelectedTransaction(null);
   };
 
-  const buttonBaseStyle = "px-6 py-2 font-bold rounded-lg transition-colors duration-300";
-  const activeButtonStyle = "bg-cyan-500 text-white shadow-md";
-  const inactiveButtonStyle = "bg-gray-700 text-gray-300 hover:bg-gray-600";
+  const buttonBaseStyle = "px-6 py-3 font-bold rounded-lg transition-all duration-300 flex items-center justify-center space-x-2";
+  const activeButtonStyle = "bg-blue-600 text-white shadow-lg ring-2 ring-offset-2 ring-offset-gray-900 ring-blue-500";
+  const inactiveButtonStyle = "bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white";
 
   if (!adminInfo) {
     return <LoadingSpinner message="Verificando credenciales..." />;
@@ -142,45 +133,53 @@ const AdminPage = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
       <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-luckiest-guy text-white">Panel de Administrador</h1>
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-        >
-          Cerrar Sesión
-        </button>
+        <h1 className="text-4xl font-luckiest-guy bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Panel de Administrador</h1>
+        <div className="flex items-center space-x-4">
+          {view === 'transactions' && (
+            <button
+              onClick={fetchTransactions}
+              disabled={transactionsLoading}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-300"
+            >
+              <FaSync className={transactionsLoading ? 'animate-spin' : ''} />
+              <span>{transactionsLoading ? 'Actualizando...' : 'Actualizar'}</span>
+            </button>
+          )}
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </header>
 
-      <div className="mb-8 flex justify-center space-x-4">
-        <button
-          onClick={() => setView('raffles')}
-          className={`${buttonBaseStyle} ${view === 'raffles' ? activeButtonStyle : inactiveButtonStyle}`}
-        >
-          Gestionar Rifas
-        </button>
+      <div className="mb-8 flex justify-start space-x-4">
         <button
           onClick={() => setView('transactions')}
           className={`${buttonBaseStyle} ${view === 'transactions' ? activeButtonStyle : inactiveButtonStyle}`}
         >
-          Ver Transacciones
+          <FaReceipt />
+          <span>Ver Transacciones</span>
+        </button>
+        <button
+          onClick={() => setView('raffles')}
+          className={`${buttonBaseStyle} ${view === 'raffles' ? activeButtonStyle : inactiveButtonStyle}`}
+        >
+          <FaCube />
+          <span>Gestionar Rifas</span>
         </button>
       </div>
 
       <main>
         {view === 'raffles' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <RaffleEditor 
-              onRaffleCreated={handleRaffleUpdate} 
-              adminToken={adminInfo.token} 
-            />
-            <RaffleStatusManager
-              raffles={raffles}
-              loading={rafflesLoading}
-              error={rafflesError}
-              onUpdate={handleRaffleUpdate}
-              adminToken={adminInfo.token}
-            />
-          </div>
+          <RaffleStatusManager
+            raffles={raffles}
+            loading={rafflesLoading}
+            error={rafflesError}
+            onUpdate={handleRaffleUpdate}
+            adminToken={adminInfo.token}
+          />
         )}
 
         {view === 'transactions' && (
