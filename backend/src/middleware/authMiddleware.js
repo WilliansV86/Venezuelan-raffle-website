@@ -22,9 +22,7 @@ const protect = asyncHandler(async (req, res, next) => {
 });
 
 const admin = (req, res, next) => {
-  // For this project, we just need to know that a valid token exists.
-  // The protect middleware already handled that.
-  if (req.user) {
+  if (req.user && req.user.id === 'admin_user') {
     next();
   } else {
     res.status(401);
