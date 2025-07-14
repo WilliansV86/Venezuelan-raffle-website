@@ -24,23 +24,26 @@ connectDB().then(() => {
   console.log('Database connection successful, starting web server...');
   const app = express();
 
-  // Enhanced CORS configuration to ensure frontend connectivity
-  app.use(cors());
-  
-  // Set explicit CORS headers for all routes
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-admin-key');
-    res.header('Access-Control-Max-Age', '86400');
-    
-    // Handle OPTIONS requests
-    if (req.method === 'OPTIONS') {
-      return res.status(200).end();
-    }
-    
-    next();
-  });
+  // Enhanced CORS configuration for production and development
+  const allowedOrigins = [
+    'https://venezuelan-raffle-admin.windsurf.build',
+    'http://localhost:3000' // for local frontend development
+  ];
+
+  const corsOptions = {
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  };
+
+  app.use(cors(corsOptions));
 
   app.use(express.json());
   
