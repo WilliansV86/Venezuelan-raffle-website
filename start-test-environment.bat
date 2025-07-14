@@ -25,7 +25,7 @@ start cmd /k "cd frontend && npm start"
 
 echo.
 echo Test environment started!
-echo Backend API: http://localhost:5000
+echo Backend API: http://localhost:5100
 echo Frontend: http://localhost:3000
 echo.
 echo Press any key to close this window. The servers will continue running in their own windows.

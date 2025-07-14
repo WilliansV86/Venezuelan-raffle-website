@@ -11,8 +11,8 @@ const SocialLinks = () => {
 
   return (
     <div className="py-12">
-      <h2 className="text-center text-3xl font-bold text-white mb-8">Síguenos en Nuestras Redes</h2>
-      <div className="flex justify-center items-center space-x-6 md:space-x-8">
+      <h2 className="text-center text-4xl font-bold text-white mb-8">Síguenos en Nuestras Redes</h2>
+      <div className="flex justify-center items-center space-x-8">
         {socialMedia.map((social) => (
           <a
             key={social.name}
@@ -20,9 +20,9 @@ const SocialLinks = () => {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={social.name}
-            className={`${social.color} transform hover:scale-125 transition-all duration-300`}
+            className={`${social.color} transform hover:scale-125 transition-all duration-300 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]`}
           >
-            <div className="text-4xl md:text-5xl">{social.icon}</div>
+            <div className="text-5xl">{social.icon}</div>
           </a>
         ))}
       </div>

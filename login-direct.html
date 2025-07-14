@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Admin Login</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 40px auto; 
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 25px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            border: 1px solid #ddd;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        #status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Venezuelan Raffle Website</h1>
+        <h2>Direct Admin Login</h2>
+        
+        <div>
+            <label for="adminKey">Admin Password:</label>
+            <input type="password" id="adminKey" value="Tusuerte2025" placeholder="Enter admin password">
+        </div>
+        
+        <button onclick="login()">Login Directly</button>
+        <div id="status"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Admin Token Status</h2>
+        <div id="token-status">Checking...</div>
+        <button onclick="clearToken()">Clear Admin Token</button>
+    </div>
+    
+    <script>
+        // Check token on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkToken();
+        });
+        
+        // Direct login function
+        async function login() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = 'Logging in...';
+            statusDiv.className = '';
+            
+            const adminKey = document.getElementById('adminKey').value;
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ adminKey })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store token in localStorage
+                    localStorage.setItem('adminInfo', JSON.stringify(data));
+                    
+                    statusDiv.innerHTML = `
+                        <p class="success">✓ Login successful!</p>
+                        <p>Token stored in localStorage.</p>
+                        <p><a href="http://localhost:3001/admin/raffles" target="_blank">Go to Admin Panel</a></p>
+                    `;
+                    statusDiv.className = 'status-success';
+                    
+                    // Update token status
+                    checkToken();
+                } else {
+                    statusDiv.innerHTML = `
+                        <p class="error">✗ Login failed: ${data.message || 'Unknown error'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    statusDiv.className = 'status-error';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <p class="error">✗ Error: ${error.message}</p>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+                statusDiv.className = 'status-error';
+            }
+        }
+        
+        // Check admin token status
+        function checkToken() {
+            const tokenStatus = document.getElementById('token-status');
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    tokenStatus.innerHTML = '<p class="error">No admin token found in localStorage</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                tokenStatus.innerHTML = `
+                    <p class="success">Admin token found in localStorage:</p>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+            } catch (e) {
+                tokenStatus.innerHTML = `<p class="error">Error parsing admin token: ${e.message}</p>`;
+            }
+        }
+        
+        // Clear admin token
+        function clearToken() {
+            localStorage.removeItem('adminInfo');
+            checkToken();
+            alert('Admin token cleared from localStorage');
+        }
+    </script>
+</body>
+</html>

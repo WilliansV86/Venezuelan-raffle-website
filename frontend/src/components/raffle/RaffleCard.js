@@ -1,58 +1,73 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import TermsModal from '../common/TermsModal';
 
-const RaffleCard = ({ raffle }) => {
-  // Calculate percentage remaining
-  const percentageSold = raffle.percentageSold || 0;
-  const percentageRemaining = 100 - percentageSold;
-  
-  // Helper function for progress bar color
-  const getProgressBarColor = (percentage) => {
-    if (percentage < 50) return 'bg-gradient-to-r from-cyan-500 to-blue-500';
-    if (percentage < 75) return 'bg-gradient-to-r from-cyan-500 to-green-500';
-    return 'bg-gradient-to-r from-green-500 to-yellow-500';
+const RaffleCard = ({ raffle, loading, isPast }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  if (loading) {
+    return <div className="w-96"><div className="h-[600px] bg-gray-700 animate-pulse rounded-lg shadow-lg"></div></div>;
+  }
+
+  if (!raffle) {
+    return null;
+  }
+
+  // Fix image path to point to the correct backend URL
+  const imageUrl = raffle.image ? 
+    raffle.image.startsWith('http') ? raffle.image : `http://localhost:5100${raffle.image}` 
+    : '/images/default-raffle-image.png';
+
+  const handleParticipateClick = () => {
+    setIsModalOpen(true);
   };
-  
+
+  const handleAcceptTerms = () => {
+    setIsModalOpen(false);
+    navigate(`/raffle/${raffle._id}/participate`);
+  };
+
   return (
     <>
-      <div className="relative">
-        {/* Prize Image */}
-        <img 
-          src={raffle.image || '/images/toyota-hilux-raffle.png'} 
-          alt={raffle.title || 'Sorteo Especial'} 
-          className="w-full h-48 object-cover"
-          onError={(e) => {
-            e.target.onerror = null; 
-            e.target.src = '/images/toyota-hilux-raffle.png';
-          }}
-        />
-        
-        {/* Price Badge */}
-        <div className="absolute top-0 right-0 bg-vnz-yellow text-dark font-bold py-1 px-3 m-2 rounded-full">
-          ${raffle.ticketPrice?.toFixed(2) || '10.00'}
-        </div>
-      </div>
-      
-      <div className="p-4 pt-3 pb-5 font-sans flex flex-col justify-between h-[110px]">
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-cyan-400 text-sm">Quedan {percentageRemaining}%</span>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-2">
-            <div 
-              className={`h-2 rounded-full ${getProgressBarColor(percentageSold)}`}
-              style={{ width: `${percentageSold}%` }}
-            ></div>
-          </div>
-        </div>
-        
-        <div className="flex justify-center items-center mt-6">
-          <Link 
-            to={`/raffle/${raffle._id}`} 
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-2 px-6 rounded-full hover:scale-105 transform transition duration-300"
-          >
-            Participar
-          </Link>
+      {isModalOpen && <TermsModal onAccept={handleAcceptTerms} />}
+      <div className="w-96 font-sans transition-transform duration-300 ease-in-out hover:scale-105 group">
+        <Link to={`/raffle/${raffle._id}`} className="block">
+          <img 
+            src={imageUrl} 
+            alt={raffle.title || 'Ver detalles del sorteo'} 
+            className="w-full h-[600px] object-cover rounded-lg shadow-lg"
+          />
+        </Link>
+        <div className="p-6 text-white flex flex-col justify-center items-center">
+          <h3 className="text-2xl font-bold text-center mb-4 truncate">{raffle.title}</h3>
+          {isPast ? (
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <span className="bg-purple-800 text-white text-sm font-semibold px-4 py-1 rounded-full">Sorteo Finalizado</span>
+              <div className="flex justify-center mt-2">
+                <Link to={`/raffle/${raffle._id}`}>
+                  <button className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105">
+                    Ver Detalles
+                  </button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center space-y-4 w-full">
+              <div className="w-full bg-gray-700 rounded-full h-2.5">
+                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${raffle.progress || 100}%` }}></div>
+              </div>
+              <span className="text-sm">Quedan {100 - (raffle.progress || 0)}%</span>
+              <div className="flex justify-center mt-2">
+                <button 
+                  onClick={handleParticipateClick}
+                  className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105"
+                >
+                  Participar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -60,3 +75,4 @@ const RaffleCard = ({ raffle }) => {
 };
 
 export default RaffleCard;
+

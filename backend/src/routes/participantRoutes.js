@@ -1,17 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const {
-  getAllParticipants,
-  getParticipantById,
-  getParticipantByEmail
-} = require('../controllers/participantController');
-const { protectAdmin } = require('../middleware/authMiddleware');
+const { getParticipantById } = require('../controllers/participantController');
+const { protect } = require('../middleware/authMiddleware');
 
-// Public route for ticket verification
-router.get('/email/:email', getParticipantByEmail);
-
-// Admin-only routes
-router.get('/', protectAdmin, getAllParticipants);
-router.get('/:id', protectAdmin, getParticipantById);
+// This is a placeholder route to prevent server crashes.
+router.route('/:id').get(protect, getParticipantById);
 
 module.exports = router;

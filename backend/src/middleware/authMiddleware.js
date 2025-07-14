@@ -1,40 +1,35 @@
-/**
- * Authentication middleware for protecting admin routes
- */
-
+const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 
-// Simple admin key authentication
-// In a production environment, you would want to use JWT tokens
-// or another more secure authentication method
-const protectAdmin = asyncHandler(async (req, res, next) => {
+const protect = asyncHandler(async (req, res, next) => {
   let token;
-  
-  // Get token from header - support both x-admin-key and Authorization Bearer token
-  if (req.headers['x-admin-key']) {
-    // Use x-admin-key header directly
-    token = req.headers['x-admin-key'];
-  } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    // Use Bearer token
-    token = req.headers.authorization.split(' ')[1];
-  }
-  
-  try {
-    // Verify token matches admin key
-    if (token && token === process.env.ADMIN_KEY) {
-      // Token valid, proceed to next middleware
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = { id: decoded.id }; // Attach decoded id to user
       next();
-    } else {
+    } catch (error) {
+      console.error('Token verification failed:', error);
       res.status(401);
-      throw new Error('No autorizado, clave de administrador inválida');
+      throw new Error('Not authorized, token failed');
     }
-  } catch (error) {
-    console.error('Error de autenticación:', error);
+  } else {
     res.status(401);
-    throw new Error('No autorizado, error de autenticación');
+    throw new Error('Not authorized, no token');
   }
 });
 
-module.exports = {
-  protectAdmin
+const admin = (req, res, next) => {
+  // For this project, we just need to know that a valid token exists.
+  // The protect middleware already handled that.
+  if (req.user) {
+    next();
+  } else {
+    res.status(401);
+    throw new Error('Not authorized as an admin');
+  }
 };
+
+module.exports = { protect, admin };

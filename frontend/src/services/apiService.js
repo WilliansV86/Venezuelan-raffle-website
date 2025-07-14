@@ -24,6 +24,16 @@ export const fetchRaffles = () => apiClient.get('/raffles');
 export const fetchRaffleById = (id) => apiClient.get(`/raffles/${id}`);
 
 // Admin specific methods
+export const fetchAdminRaffles = () => {
+  // Create an axios instance that uses the Bearer token from adminInfo
+  const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+  return axios.get(`${apiClient.defaults.baseURL}/admin/raffles`, {
+    headers: {
+      Authorization: adminInfo.token ? `Bearer ${adminInfo.token}` : ''
+    }
+  });
+};
+
 export const createRaffleAdmin = (raffleData) => apiClient.post('/raffles', raffleData);
 export const updateRaffleAdmin = (id, raffleData) => apiClient.put(`/raffles/${id}`, raffleData);
 export const deleteRaffleAdmin = (id) => apiClient.delete(`/raffles/${id}`);

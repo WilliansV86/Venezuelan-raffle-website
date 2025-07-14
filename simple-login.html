@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Admin Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+        h1, h2 { color: #2c3e50; }
+        button { background-color: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #2980b9; }
+        input { width: 100%; padding: 8px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Simple Admin Login</h1>
+    <div class="card">
+        <h2>Login</h2>
+        <p>Enter the admin password: <strong>admin123</strong></p>
+        <input type="password" id="adminPassword" value="admin123">
+        <button onclick="login()">Login</button>
+        <div id="loginResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Current Token</h2>
+        <div id="currentToken">Checking...</div>
+        <button onclick="clearToken()">Clear Token</button>
+    </div>
+    
+    <div class="card">
+        <h2>Next Steps</h2>
+        <p>After successful login:</p>
+        <ol>
+            <li>Check that the token appears above</li>
+            <li>Go to the <a href="http://localhost:3001/admin/raffles" target="_blank">Admin Panel</a></li>
+        </ol>
+    </div>
+    
+    <script>
+        // Check for token on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkToken();
+        });
+        
+        async function login() {
+            const adminKey = document.getElementById('adminPassword').value;
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = 'Logging in...';
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminKey })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Store token
+                    localStorage.setItem('adminInfo', JSON.stringify(data));
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">Login successful!</p>
+                        <p>Token saved to localStorage. You can now access the admin panel.</p>
+                    `;
+                    
+                    // Update token display
+                    checkToken();
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">Login failed: ${data.message || 'Unknown error'}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message}</p>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+            }
+        }
+        
+        function checkToken() {
+            const tokenDiv = document.getElementById('currentToken');
+            
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    tokenDiv.innerHTML = '<p>No admin token found in localStorage.</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                tokenDiv.innerHTML = `
+                    <p>Admin token found:</p>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+            } catch (error) {
+                tokenDiv.innerHTML = `<p class="error">Error reading token: ${error.message}</p>`;
+            }
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('adminInfo');
+            checkToken();
+            alert('Admin token cleared!');
+        }
+    </script>
+</body>
+</html>

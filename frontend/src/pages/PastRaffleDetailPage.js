@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { FaTrophy, FaTicketAlt, FaUser, FaCalendarAlt, FaGift, FaArrowLeft } from 'react-icons/fa';
+import { FaTrophy, FaUser, FaCalendarAlt, FaGift, FaArrowLeft } from 'react-icons/fa';
 
 const PastRaffleDetailPage = () => {
   const { id } = useParams();

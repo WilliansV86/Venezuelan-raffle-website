@@ -1,29 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const {
-  createRaffle,
-  getAllRaffles,
-  getActiveRaffles,
-  getPastRaffles,
-  getRaffleById,
-  updateRaffle,
-  activateRaffle,
-  completeRaffle
-} = require('../controllers/raffleController');
+const { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles } = require('../controllers/raffleController.js');
+const { protect, admin } = require('../middleware/authMiddleware.js');
+const { upload } = require('../middleware/uploadMiddleware.js');
 
-// Middleware for admin authentication (to be implemented)
-const { protectAdmin } = require('../middleware/authMiddleware');
+// Root route - get active raffles / create new raffle
+router.route('/')
+  .get(getRaffles)
+  .post(protect, admin, upload.single('image'), createRaffle);
 
-// Public routes
-router.get('/active', getActiveRaffles); // Must be before /:id
-router.get('/past', getPastRaffles); // Must be before /:id
-router.get('/', getAllRaffles);
-router.get('/:id', getRaffleById);
+// IMPORTANT: Fixed routes must come BEFORE parametric routes
+// Get completed raffles
+router.get('/past', getPastRaffles);
 
-// Admin-only routes
-router.post('/', protectAdmin, createRaffle);
-router.put('/:id', protectAdmin, updateRaffle);
-router.put('/:id/activate', protectAdmin, activateRaffle);
-router.put('/:id/complete', protectAdmin, completeRaffle);
+// Parametric routes - handle these after the fixed routes
+router.route('/:id')
+  .get(getRaffleById)
+  .put(protect, admin, upload.single('image'), updateRaffle);
+
+// Update raffle status
+router.route('/:id/status')
+  .put(protect, admin, updateRaffleStatus);
 
 module.exports = router;

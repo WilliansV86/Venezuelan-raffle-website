@@ -1,58 +1,39 @@
 import axios from 'axios';
 
-// Create a base API instance
-// Determine API URL based on environment
-const API_URL = process.env.NODE_ENV === 'production'
-  ? '/api'  // In production, use relative path (same domain)
-  : 'http://localhost:5100/api'; // In development, connect to local backend server
-
-// Log the API URL for debugging purposes
-console.log('API URL being used:', API_URL);
-
 const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  // Add a longer timeout for slow connections
-  timeout: 10000,
+  baseURL: 'http://localhost:5100/api',
+  timeout: 10000, // Add a 10 second timeout
+  timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend está funcionando.'
 });
 
-// Request interceptor for adding authorization token
+// Add a request interceptor to include the token in headers
 api.interceptors.request.use(
   (config) => {
-    // You can add auth token here if needed for admin features
-    // const token = localStorage.getItem('adminToken');
-    // if (token) {
-    //   config.headers.Authorization = `Bearer ${token}`;
-    // }
-    console.log('Making request to:', `${config.baseURL}${config.url}`);
+    const adminInfo = JSON.parse(localStorage.getItem('adminInfo'));
+    if (adminInfo && adminInfo.token) {
+      config.headers.Authorization = `Bearer ${adminInfo.token}`;
+    }
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor for better error handling
+// Add a response interceptor to handle errors globally
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
-    if (error.code === 'ECONNABORTED') {
-      console.error('Request timeout - backend server may be down');
+    if (error.response && error.response.status === 401) {
+      // Handle unauthorized access, e.g., redirect to login
+      localStorage.removeItem('adminInfo');
+      window.location.href = '/login';
     } else if (!error.response) {
-      console.error('Network error - cannot connect to backend server at', API_URL);
+      // Handle network errors (e.g., backend is down)
       alert('Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend esté funcionando.');
-    } else {
-      console.error('API Error:', error.response?.status, error.response?.data);
     }
     return Promise.reject(error);
   }
 );
-
-
 
 export default api;

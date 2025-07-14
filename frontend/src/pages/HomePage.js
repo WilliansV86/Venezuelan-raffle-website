@@ -1,79 +1,51 @@
-/* Version4: Fixed background image implementation with proper URL path and overlay gradient */
 import React, { useState, useEffect } from 'react';
 import RaffleCard from '../components/raffle/RaffleCard';
+import { FaGift, FaHistory } from 'react-icons/fa';
 import SocialLinks from '../components/common/SocialLinks';
 import Confetti from 'react-confetti';
 import raffleService from '../services/raffleService';
 
+
+
 const HomePage = () => {
-  const [showConfetti, setShowConfetti] = useState(true);
-  const [activeRaffles, setActiveRaffles] = useState([]);
-  const [pastRaffles, setPastRaffles] = useState([]);
+    const [activeRaffle, setActiveRaffle] = useState(null);
+  const [pastRaffle, setPastRaffle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  const fetchRaffles = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      console.log('Fetching raffles from services...');
-      const [activeResponse, pastResponse] = await Promise.all([
-        raffleService.getActiveRaffles(),
-        raffleService.getPastRaffles(),
-      ]);
-      
-      console.log('Active raffles response:', activeResponse);
-      console.log('Past raffles response:', pastResponse);
-      
-      // The API returns data in { success, count, data } format
-      if (activeResponse && activeResponse.success && Array.isArray(activeResponse.data)) {
-        console.log('Setting active raffles:', activeResponse.data);
-        setActiveRaffles(activeResponse.data);
-      } else {
-        console.log('No active raffles data found or invalid format');
-        setActiveRaffles([]);
-      }
-      
-      if (pastResponse && pastResponse.success && Array.isArray(pastResponse.data)) {
-        console.log('Setting past raffles:', pastResponse.data);
-        setPastRaffles(pastResponse.data);
-      } else {
-        console.log('No past raffles data found or invalid format');
-        setPastRaffles([]);
-      }
-
-    } catch (err) {
-      console.error("Error fetching raffles:", err);
-      if (err.response) {
-        console.error('Error data:', err.response.data);
-        console.error('Error status:', err.response.status);
-        
-        // Check for MongoDB connection error
-        if (err.response.data && err.response.data.message && 
-            err.response.data.message.includes('Client must be connected')) {
-          setError('Error de conexión a la base de datos. Es posible que se requiera actualizar la lista de IPs permitidas en MongoDB Atlas.');
-          return;
-        }
-      } else if (err.request) {
-        console.error('No response received:', err.request);
-      } else {
-        console.error('Error message:', err.message);
-      }
-      setError('No se pudieron cargar los sorteos. Por favor, intente más tarde.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
+    const fetchRaffles = async () => {
+      try {
+        const [activeRes, pastRes] = await Promise.all([
+          raffleService.getActiveRaffles(),
+          raffleService.getPastRaffles(),
+        ]);
+
+        if (activeRes && activeRes.success && activeRes.data && activeRes.data.length > 0) {
+          setActiveRaffle(activeRes.data[0]);
+        }
+
+        if (pastRes && pastRes.success && pastRes.data && pastRes.data.length > 0) {
+          setPastRaffle(pastRes.data[0]);
+        }
+      } catch (err) {
+        setError('No se pudieron cargar los sorteos. Por favor, intente más tarde.');
+        console.error("Error fetching raffles:", err);
+      } finally {
+        setLoading(false);
+      }
+    };  
     fetchRaffles();
   }, []);
 
-    const noRafflesFound = !loading && !error && activeRaffles.length === 0 && pastRaffles.length === 0;
-
   return (
-    <>
+    <div 
+      className="min-h-screen w-full bg-cover bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `linear-gradient(rgba(23, 37, 84, 0.9), rgba(23, 37, 84, 0.9)), url('/images/main-page-bg.png')`,
+      }}
+    >
       {showConfetti && (
         <Confetti
           recycle={false}
@@ -83,62 +55,67 @@ const HomePage = () => {
           height={typeof window !== 'undefined' ? window.innerHeight : 0}
         />
       )}
-      <div className="min-h-screen w-full bg-gradient-to-br from-gray-900/95 via-blue-900/80 to-black/95">
-        
-        <header className="text-center py-16">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Nuestros Sorteos</h1>
+      <div className="container mx-auto px-4 py-8">
+        <header className="text-center pt-8 pb-12">
+          <h1 className="text-5xl font-heading text-white uppercase" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)' }}>Nuestros Sorteos</h1>
         </header>
 
-        <main className="container mx-auto px-4 pb-16">
+        <main>
           {loading && (
-            <div className="text-center text-white">
-              <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p>Cargando sorteos...</p>
+             <div className="flex flex-col md:flex-row justify-center items-start gap-32">
+                <div className="w-full md:w-auto flex flex-col items-center">
+                    <h2 className="text-3xl font-semibold text-white mb-6">Sorteo Activo</h2>
+                    <RaffleCard loading={true} />
+                </div>
+                <div className="w-full md:w-auto flex flex-col items-center">
+                    <h2 className="text-3xl font-semibold text-white mb-6">Sorteo Anterior</h2>
+                    <RaffleCard loading={true} />
+                </div>
             </div>
           )}
-
           {error && (
             <div className="bg-red-500 bg-opacity-75 text-white text-center p-4 rounded-lg shadow-lg mb-8 mx-auto max-w-4xl">{error}</div>
           )}
 
-          {noRafflesFound && (
-            <div className="text-center py-10">
-              <p className="text-2xl text-gray-400">No hay sorteos disponibles en este momento.</p>
-              <p className="text-gray-500">Por favor, ¡vuelve a consultar más tarde!</p>
+          {!loading && !error && (
+            <div className="flex flex-col md:flex-row justify-center items-start gap-32">
+              {/* Active Raffles Section */}
+              <div className="w-full md:w-auto flex flex-col items-center">
+                <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <FaGift className="text-cyan-400" />
+                  <span>Sorteo Activo</span>
+                </h2>
+                {activeRaffle ? (
+                  <div className="flex justify-center">
+                    <RaffleCard raffle={activeRaffle} isPast={false} />
+                  </div>
+                ) : (
+                  <p className="text-gray-300">No hay sorteos activos.</p>
+                )}
+              </div>
+
+              {/* Past Raffles Section */}
+              <div className="w-full md:w-auto flex flex-col items-center">
+                <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <FaHistory className="text-purple-400" />
+                  <span>Sorteo Anterior</span>
+                </h2>
+                {pastRaffle ? (
+                  <div className="flex justify-center">
+                    <RaffleCard raffle={pastRaffle} isPast={true} />
+                  </div>
+                ) : (
+                  <p className="text-gray-300">No hay sorteos anteriores.</p>
+                )}
+              </div>
             </div>
           )}
-
-          {!loading && !error && (
-            <>
-              {activeRaffles && activeRaffles.length > 0 && (
-                <>
-                <h2 className="text-3xl font-bold text-white text-center mb-8">Sorteos Activos</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {activeRaffles.map(raffle => (
-                    <RaffleCard key={raffle._id} raffle={raffle} />
-                  ))}
-                </div>
-                </>
-              )}
-
-              {pastRaffles && pastRaffles.length > 0 && (
-                <div className="mt-16">
-                  <h2 className="text-3xl font-bold text-white text-center mb-8">Sorteos Anteriores</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {pastRaffles.map(raffle => (
-                      <RaffleCard key={raffle._id} raffle={raffle} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-          
-          <SocialLinks />
+          <div className="mt-16">
+            <SocialLinks />
+          </div>
         </main>
-
       </div>
-    </>
+    </div>
   );
 };
 

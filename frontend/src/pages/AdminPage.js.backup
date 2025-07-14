@@ -1,0 +1,370 @@
+// This is a backup of the original AdminPage.js before upgrade
+// Created on July 13, 2025
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import api from '../services/api'; // Import the centralized api service
+
+const AdminPage = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [adminKey, setAdminKey] = useState('');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
+  
+  const navigate = useNavigate();
+  
+  // Check if adminInfo exists in localStorage
+  useEffect(() => {
+    const savedInfo = localStorage.getItem('adminInfo');
+    if (savedInfo) {
+      try {
+        // Parse the JSON data from localStorage
+        const adminInfo = JSON.parse(savedInfo);
+        if (adminInfo && adminInfo.token) {
+          setAdminKey(adminInfo.token);
+          setAuthenticated(true);
+        } else {
+          // Invalid format of saved admin info
+          localStorage.removeItem('adminInfo');
+        }
+      } catch (err) {
+        console.error('Error parsing adminInfo from localStorage:', err);
+        localStorage.removeItem('adminInfo');
+      }
+    }
+  }, []);
+  
+  // Load transactions when authenticated
+  useEffect(() => {
+    if (authenticated) {
+      fetchTransactions();
+    }
+  }, [authenticated]);
+  
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching transactions using auth token from localStorage');
+      
+      // Use the centralized API instance that automatically includes the auth token
+      const response = await api.get('/admin/transactions');
+      
+      console.log('Admin transactions response:', response);
+      
+      // Handle both array format and {success, data} format
+      if (Array.isArray(response.data)) {
+        console.log('Setting transactions (array format):', response.data);
+        setTransactions(response.data);
+      } else if (response.data && response.data.success && response.data.data) {
+        console.log('Setting transactions (success.data format):', response.data.data);
+        setTransactions(response.data.data);
+      } else {
+        console.error('API returned unexpected response format:', response.data);
+        setError('Failed to load transactions');
+      }
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+      } else if (err.request) {
+        console.error('No response received:', err.request);
+      }
+      setError('Failed to load transactions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminKeyChange = (e) => {
+    setAdminKey(e.target.value);
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.post('http://localhost:5100/api/admin/login', { adminKey });
+      
+      if (response.data && response.data.token) {
+        localStorage.setItem('adminInfo', JSON.stringify(response.data));
+        setAuthenticated(true);
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Failed to login. Check your admin key and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminInfo');
+    setAuthenticated(false);
+    setAdminKey('');
+  };
+
+  const handleViewTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedTransaction(null);
+    setAdminNotes('');
+  };
+
+  const updateTransactionStatus = async (transactionId, newStatus) => {
+    try {
+      setActionMessage(''); // Clear previous messages
+      
+      const response = await api.put(`/admin/transactions/${transactionId}/status`, {
+        status: newStatus,
+        adminNotes: adminNotes
+      });
+      
+      if (response.data && response.data.success) {
+        // Update the local transaction list
+        setTransactions(transactions.map(t => 
+          t._id === transactionId ? {...t, status: newStatus, adminNotes} : t
+        ));
+        setActionMessage(`Transaction status updated to ${newStatus}`);
+        
+        // Close the modal after successful update
+        setTimeout(() => {
+          handleCloseModal();
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Error updating transaction:', err);
+      setActionMessage('Failed to update transaction status');
+    }
+  };
+
+  const handleApproveTransaction = () => {
+    if (selectedTransaction) {
+      updateTransactionStatus(selectedTransaction._id, 'Approved');
+    }
+  };
+
+  const handleRejectTransaction = () => {
+    if (selectedTransaction) {
+      updateTransactionStatus(selectedTransaction._id, 'Rejected');
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchTransactions();
+  };
+
+  // If not authenticated, show login form
+  if (!authenticated) {
+    return (
+      <div className="container mt-5">
+        <div className="row justify-content-center">
+          <div className="col-md-6">
+            <div className="card">
+              <div className="card-header">
+                <h3 className="text-center">Admin Login</h3>
+              </div>
+              <div className="card-body">
+                {error && (
+                  <div className="alert alert-danger">{error}</div>
+                )}
+                <form onSubmit={handleLogin}>
+                  <div className="mb-3">
+                    <label htmlFor="adminKey" className="form-label">Admin Key</label>
+                    <input
+                      type="password"
+                      className="form-control"
+                      id="adminKey"
+                      value={adminKey}
+                      onChange={handleAdminKeyChange}
+                      required
+                    />
+                  </div>
+                  <div className="d-grid">
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary" 
+                      disabled={loading}
+                    >
+                      {loading ? 'Logging in...' : 'Login'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-fluid mt-4">
+      <div className="row mb-4">
+        <div className="col-12 d-flex justify-content-between align-items-center">
+          <h1>Panel de Administración</h1>
+          <div>
+            <button 
+              className="btn btn-outline-primary me-2" 
+              onClick={handleRefresh} 
+              disabled={loading}
+            >
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button 
+              className="btn btn-danger" 
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="alert alert-danger">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="text-center my-5">
+          <div className="spinner-border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      ) : (
+        <div className="table-responsive">
+          <table className="table table-striped">
+            <thead className="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Buyer</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.length > 0 ? (
+                transactions.map((transaction) => (
+                  <tr key={transaction._id}>
+                    <td>{transaction._id.substring(0, 8)}...</td>
+                    <td>{transaction.buyer?.name || 'N/A'}</td>
+                    <td>${transaction.amount?.toFixed(2) || 'N/A'}</td>
+                    <td>{transaction.paymentMethod || 'N/A'}</td>
+                    <td>{transaction.status || 'Pending'}</td>
+                    <td>
+                      {transaction.createdAt ? 
+                        new Date(transaction.createdAt).toLocaleString() : 'N/A'}
+                    </td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-info"
+                        onClick={() => handleViewTransaction(transaction)}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="text-center">
+                    No transactions available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      
+      {/* Transaction Details Modal */}
+      {selectedTransaction && (
+        <div className="modal show d-block" tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Transaction Details</h5>
+                <button type="button" className="btn-close" onClick={handleCloseModal}></button>
+              </div>
+              <div className="modal-body">
+                {actionMessage && (
+                  <div className="alert alert-success">{actionMessage}</div>
+                )}
+                <div className="mb-3">
+                  <h6>Buyer Information</h6>
+                  <p><strong>Name:</strong> {selectedTransaction.buyer?.name || 'N/A'}</p>
+                  <p><strong>Email:</strong> {selectedTransaction.buyer?.email || 'N/A'}</p>
+                  <p><strong>Phone:</strong> {selectedTransaction.buyer?.phone || 'N/A'}</p>
+                </div>
+                
+                <div className="mb-3">
+                  <h6>Payment Information</h6>
+                  <p><strong>ID:</strong> {selectedTransaction._id}</p>
+                  <p><strong>Amount:</strong> ${selectedTransaction.amount?.toFixed(2) || 'N/A'}</p>
+                  <p><strong>Method:</strong> {selectedTransaction.paymentMethod || 'N/A'}</p>
+                  <p><strong>Status:</strong> {selectedTransaction.status || 'Pending'}</p>
+                  <p><strong>Date:</strong> 
+                    {selectedTransaction.createdAt ? 
+                      new Date(selectedTransaction.createdAt).toLocaleString() : 'N/A'}
+                  </p>
+                </div>
+                
+                <div className="mb-3">
+                  <label htmlFor="adminNotes" className="form-label">Admin Notes</label>
+                  <textarea
+                    id="adminNotes"
+                    className="form-control"
+                    rows="3"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                  ></textarea>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-success me-2"
+                  onClick={handleApproveTransaction}
+                >
+                  Approve
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-danger me-2"
+                  onClick={handleRejectTransaction}
+                >
+                  Reject
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={handleCloseModal}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal backdrop */}
+      {selectedTransaction && (
+        <div className="modal-backdrop show"></div>
+      )}
+    </div>
+  );
+};
+
+export default AdminPage;

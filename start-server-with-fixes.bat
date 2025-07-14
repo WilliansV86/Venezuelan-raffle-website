@@ -11,13 +11,14 @@ echo Setting up environment variables...
 
 :: Server Settings
 SET NODE_ENV=production
-SET PORT=5001
+SET PORT=5100
 
 :: MongoDB with enhanced connection options
 SET MONGO_URI=mongodb+srv://WilliansV86:Ve17767135..!!@cluster0.adlajpr.mongodb.net/raffle?retryWrites=true^&w=majority^&connectTimeoutMS=30000^&socketTimeoutMS=45000^&maxPoolSize=10^&family=4
 
 :: Admin Authentication
 SET ADMIN_KEY=test-admin-key-123
+SET JWT_SECRET=secreto2023
 
 :: Email Configuration (placeholder values for testing)
 SET EMAIL_HOST=smtp.gmail.com

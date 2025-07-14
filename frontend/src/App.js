@@ -13,9 +13,14 @@ import FormDebugPage from './pages/FormDebugPage';
 // Admin Page Components
 import AdminRafflesListPage from './pages/admin/AdminRafflesListPage';
 import CreateRafflePage from './pages/admin/CreateRafflePage';
-import EditRafflePage from './pages/admin/EditRafflePage';
+import DirectEditRafflePage from './pages/admin/DirectEditRafflePage';
 import AdminPage from './pages/AdminPage';
-import RaffleManagementPage from './pages/admin/RaffleManagementPage';
+import ParticipationPage from './pages/ParticipationPage';
+import TermsPage from './pages/TermsPage';
+import RaffleStatusManager from './components/admin/RaffleStatusManager';
+import LoginPage from './pages/LoginPage';
+import RequireAdmin from './components/auth/RequireAdmin';
+
 
 
 // Layout components
@@ -37,13 +42,23 @@ function App() {
           <Route path="/ganadores/:id" element={<PastRaffleDetailPage />} />
           <Route path="/test-purchase" element={<TestPurchasePage />} />
           <Route path="/form-debug" element={<FormDebugPage />} />
+          <Route path="/terms" element={<TermsPage />} />
 
           {/* Admin Routes */}
           <Route path="/admin/raffles" element={<AdminRafflesListPage />} />
           <Route path="/admin/raffles/new" element={<CreateRafflePage />} />
-          <Route path="/admin/raffles/edit/:id" element={<EditRafflePage />} />
-          <Route path="/admin/payments" element={<AdminPage />} />
-          <Route path="/admin/raffle-management" element={<RaffleManagementPage />} />
+          <Route path="/admin/raffles/edit/:id" element={<DirectEditRafflePage />} />
+          <Route path="/admin/raffles/status" element={<RaffleStatusManager />} />
+                    <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/admin" element={
+  <RequireAdmin>
+    <AdminPage />
+  </RequireAdmin>
+} />
+
+          <Route path="/raffle/:raffleId/participate" element={<ParticipationPage />} />
+          
 
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

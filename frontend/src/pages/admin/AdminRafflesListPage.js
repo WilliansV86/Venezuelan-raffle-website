@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchRaffles, deleteRaffleAdmin } from '../../services/apiService';
+import { fetchAdminRaffles, deleteRaffleAdmin } from '../../services/apiService';
 import { setAdminKey, getAdminKey, isAdminLoggedIn } from '../../utils/adminAuth';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
@@ -38,9 +38,9 @@ const AdminRafflesListPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // IMPORTANT: fetchRaffles() currently gets only active ones.
-      // For admin, we'd ideally have an endpoint like fetchAllRafflesAdmin()
-      const { data } = await fetchRaffles();
+      // Use our new admin-specific function to fetch all raffles
+      const response = await fetchAdminRaffles();
+      const data = response.data;
       setRaffles(data);
     } catch (err) {
       console.error('Error fetching raffles for admin:', err);

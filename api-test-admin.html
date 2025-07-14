@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin API Test Tool</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h1 { 
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 { 
+            color: #3498db;
+            margin-top: 0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.danger {
+            background-color: #e74c3c;
+        }
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        button.success {
+            background-color: #2ecc71;
+        }
+        button.success:hover {
+            background-color: #27ae60;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .endpoint-url {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 3px 6px;
+            border-radius: 3px;
+            border: 1px solid #ddd;
+        }
+        .collapsible {
+            background-color: #f1f1f1;
+            color: #444;
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-weight: bold;
+        }
+        .active, .collapsible:hover {
+            background-color: #e8e8e8;
+        }
+        .content {
+            padding: 0 18px;
+            display: none;
+            overflow: hidden;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Venezuelan Raffle Website - Admin API Test Tool</h1>
+    
+    <div class="card">
+        <h2>Admin Token Status</h2>
+        <div id="token-status">Checking...</div>
+        <button onclick="checkToken()">Refresh Token Status</button>
+        <button class="danger" onclick="clearToken()">Clear Admin Token</button>
+    </div>
+    
+    <div class="card">
+        <h2>Admin API Test</h2>
+        <p>Test your backend API endpoints directly:</p>
+        
+        <button class="collapsible">GET /api/admin/raffles</button>
+        <div class="content">
+            <p>This endpoint should return all raffles available in the database.</p>
+            <p>Endpoint: <span class="endpoint-url">http://localhost:5100/api/admin/raffles</span></p>
+            <button onclick="testEndpoint('raffles')">Test Endpoint</button>
+            <div id="raffles-result"></div>
+        </div>
+        
+        <button class="collapsible">GET /api/admin/transactions</button>
+        <div class="content">
+            <p>This endpoint should return all transactions in the database.</p>
+            <p>Endpoint: <span class="endpoint-url">http://localhost:5100/api/admin/transactions</span></p>
+            <button onclick="testEndpoint('transactions')">Test Endpoint</button>
+            <div id="transactions-result"></div>
+        </div>
+        
+        <button class="collapsible">GET /api/raffles</button>
+        <div class="content">
+            <p>This endpoint should return public raffles (typically active ones).</p>
+            <p>Endpoint: <span class="endpoint-url">http://localhost:5100/api/raffles</span></p>
+            <button onclick="testPublicEndpoint('raffles')">Test Endpoint</button>
+            <div id="public-raffles-result"></div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Fix Admin Token</h2>
+        <p>If you're having issues with the admin token, use this to create a proper token:</p>
+        <button class="success" onclick="fixAdminToken()">Fix Admin Token</button>
+        <div id="fix-result"></div>
+    </div>
+    
+    <script>
+        // Initialize collapsible sections
+        document.addEventListener('DOMContentLoaded', function() {
+            var coll = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function() {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.display === "block") {
+                        content.style.display = "none";
+                    } else {
+                        content.style.display = "block";
+                    }
+                });
+            }
+            
+            // Check token on load
+            checkToken();
+        });
+        
+        // Check admin token status
+        function checkToken() {
+            const tokenStatus = document.getElementById('token-status');
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    tokenStatus.innerHTML = '<p class="status status-error">No admin token found in localStorage</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                if (parsed && parsed.token) {
+                    tokenStatus.innerHTML = `
+                        <p class="status status-success">Valid admin token found in localStorage</p>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                    `;
+                } else {
+                    tokenStatus.innerHTML = '<p class="status status-error">Admin token has invalid format (missing token property)</p>';
+                }
+            } catch (e) {
+                tokenStatus.innerHTML = `<p class="status status-error">Error parsing admin token: ${e.message}</p>`;
+            }
+        }
+        
+        // Clear admin token
+        function clearToken() {
+            localStorage.removeItem('adminInfo');
+            checkToken();
+            alert('Admin token cleared from localStorage');
+        }
+        
+        // Fix admin token
+        function fixAdminToken() {
+            const resultDiv = document.getElementById('fix-result');
+            try {
+                const adminObject = {
+                    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluX2lkIiwiaWF0IjoxNjI1NjUwMDAwLCJleHAiOjE2NTcxODYwMDB9.xmogXrjS-9VWaOgE7XtjxHMNPmbJDcwGv3OQr0eOdAE',
+                    isAdmin: true,
+                    name: 'Admin'
+                };
+                localStorage.setItem('adminInfo', JSON.stringify(adminObject));
+                resultDiv.innerHTML = '<p class="status status-success">Admin token fixed in localStorage!</p>';
+                checkToken();
+            } catch (e) {
+                resultDiv.innerHTML = `<p class="status status-error">Error fixing admin token: ${e.message}</p>`;
+            }
+        }
+        
+        // Test admin endpoint
+        async function testEndpoint(endpoint) {
+            const resultDiv = document.getElementById(`${endpoint}-result`);
+            resultDiv.innerHTML = '<p>Testing endpoint...</p>';
+            
+            try {
+                // Get admin token
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    resultDiv.innerHTML = '<p class="status status-error">No admin token found in localStorage. Please fix the token first.</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                if (!parsed.token) {
+                    resultDiv.innerHTML = '<p class="status status-error">Invalid admin token format (missing token property)</p>';
+                    return;
+                }
+                
+                // Make API request
+                const response = await fetch(`http://localhost:5100/api/admin/${endpoint}`, {
+                    headers: {
+                        'Authorization': `Bearer ${parsed.token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="status status-success">Success! Status: ${response.status}</p>
+                        <p>Found ${Array.isArray(data) ? data.length : 'unknown'} ${endpoint}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="status status-error">Error! Status: ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="status status-error">Error testing endpoint</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        // Test public endpoint (no auth required)
+        async function testPublicEndpoint(endpoint) {
+            const resultDiv = document.getElementById(`public-${endpoint}-result`);
+            resultDiv.innerHTML = '<p>Testing endpoint...</p>';
+            
+            try {
+                // Make API request
+                const response = await fetch(`http://localhost:5100/api/${endpoint}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="status status-success">Success! Status: ${response.status}</p>
+                        <p>Found ${Array.isArray(data) ? data.length : 'unknown'} ${endpoint}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="status status-error">Error! Status: ${response.status}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="status status-error">Error testing endpoint</p>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

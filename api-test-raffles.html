@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Raffles Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        h1, h2 { color: #2c3e50; }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover { background-color: #2980b9; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status-success { background-color: #d4edda; }
+        .status-error { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Venezuelan Raffle API Test</h1>
+    
+    <div class="card">
+        <h2>Admin Token</h2>
+        <div id="token-status"></div>
+        <button onclick="checkToken()">Check Admin Token</button>
+        <button onclick="clearToken()">Clear Admin Token</button>
+        <button onclick="fixToken()">Apply Test Token</button>
+    </div>
+    
+    <div class="card">
+        <h2>API Endpoints</h2>
+        <button onclick="testPublicRaffles()">Test Public Raffles</button>
+        <button onclick="testAdminRaffles()">Test Admin Raffles</button>
+        <button onclick="testAdminTransactions()">Test Admin Transactions</button>
+    </div>
+    
+    <div class="card">
+        <h2>API Response</h2>
+        <div id="response-container">
+            <p>Click any API test button above to see results</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Fix Instructions</h2>
+        <div id="fix-instructions">
+            <p>Follow these steps to fix the admin panel raffles issue:</p>
+            <ol>
+                <li>Check if your admin token is valid using "Check Admin Token"</li>
+                <li>Test both public and admin raffle endpoints</li>
+                <li>If admin endpoint fails but public works, there's an authorization issue</li>
+                <li>Try the "Apply Test Token" button to insert a working token for testing</li>
+                <li>After testing, you can go back to the <a href="http://localhost:3001/admin/raffles" target="_blank">Admin Panel</a></li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        // Check token on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkToken();
+        });
+        
+        // Check admin token in localStorage
+        function checkToken() {
+            const tokenStatus = document.getElementById('token-status');
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    tokenStatus.innerHTML = '<p class="error">No admin token found in localStorage</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                if (parsed.token) {
+                    tokenStatus.innerHTML = `
+                        <p class="success">Admin token found in localStorage</p>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                    `;
+                } else {
+                    tokenStatus.innerHTML = `
+                        <p class="error">Invalid admin token format - missing token field</p>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                tokenStatus.innerHTML = `<p class="error">Error reading localStorage: ${error.message}</p>`;
+            }
+        }
+        
+        // Clear admin token
+        function clearToken() {
+            localStorage.removeItem('adminInfo');
+            checkToken();
+            alert('Admin token cleared!');
+        }
+        
+        // Apply test token
+        function fixToken() {
+            const testToken = {
+                _id: "admin_user",
+                name: "Admin",
+                email: "admin@example.com",
+                isAdmin: true,
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluX3VzZXIiLCJpYXQiOjE2ODk5NTE0MzgsImV4cCI6MTY5MjU0MzQzOH0.WSuSGQPHjwveFppOHynyskluEYwDfEV9hIcRDGEZXm4"
+            };
+            
+            localStorage.setItem('adminInfo', JSON.stringify(testToken));
+            checkToken();
+            alert('Test token applied! Try testing the admin endpoints now.');
+        }
+        
+        // Test public raffles endpoint
+        async function testPublicRaffles() {
+            const responseContainer = document.getElementById('response-container');
+            responseContainer.innerHTML = '<p>Testing public raffles endpoint...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/raffles');
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'status-success' : 'status-error';
+                const statusText = response.ok ? 'Success' : 'Error';
+                
+                responseContainer.innerHTML = `
+                    <div class="status ${statusClass}">
+                        <p><strong>${statusText} (${response.status}):</strong> /api/raffles</p>
+                    </div>
+                    <p>Raffles found: ${Array.isArray(data) ? data.length : 'N/A'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="status status-error">
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+            }
+        }
+        
+        // Test admin raffles endpoint
+        async function testAdminRaffles() {
+            const responseContainer = document.getElementById('response-container');
+            responseContainer.innerHTML = '<p>Testing admin raffles endpoint...</p>';
+            
+            try {
+                // Get token from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo')) || {};
+                const token = adminInfo.token;
+                
+                if (!token) {
+                    responseContainer.innerHTML = `
+                        <div class="status status-error">
+                            <p><strong>Error:</strong> No admin token found</p>
+                        </div>
+                        <p>Please log in as admin first or use the "Apply Test Token" button</p>
+                    `;
+                    return;
+                }
+                
+                // Make API request with token
+                const response = await fetch('http://localhost:5100/api/admin/raffles', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'status-success' : 'status-error';
+                const statusText = response.ok ? 'Success' : 'Error';
+                
+                responseContainer.innerHTML = `
+                    <div class="status ${statusClass}">
+                        <p><strong>${statusText} (${response.status}):</strong> /api/admin/raffles</p>
+                    </div>
+                    <p>Raffles found: ${Array.isArray(data) ? data.length : 'N/A'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                // If successful, show instructions for fixing the admin page
+                if (response.ok && Array.isArray(data) && data.length > 0) {
+                    document.getElementById('fix-instructions').innerHTML = `
+                        <p class="success">Great! The admin API endpoint is working correctly.</p>
+                        <p>Since the API endpoint returns raffles but the admin panel shows "Not Found", 
+                           this is likely a frontend issue. Try these steps:</p>
+                        <ol>
+                            <li>Clear your browser cache or try in an incognito window</li>
+                            <li>Make sure you're using the token we just tested</li>
+                            <li>Go to the <a href="http://localhost:3001/admin/raffles" target="_blank">Admin Panel</a> now</li>
+                        </ol>
+                    `;
+                }
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="status status-error">
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+            }
+        }
+        
+        // Test admin transactions endpoint
+        async function testAdminTransactions() {
+            const responseContainer = document.getElementById('response-container');
+            responseContainer.innerHTML = '<p>Testing admin transactions endpoint...</p>';
+            
+            try {
+                // Get token from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo')) || {};
+                const token = adminInfo.token;
+                
+                if (!token) {
+                    responseContainer.innerHTML = `
+                        <div class="status status-error">
+                            <p><strong>Error:</strong> No admin token found</p>
+                        </div>
+                        <p>Please log in as admin first or use the "Apply Test Token" button</p>
+                    `;
+                    return;
+                }
+                
+                // Make API request with token
+                const response = await fetch('http://localhost:5100/api/admin/transactions', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                const statusClass = response.ok ? 'status-success' : 'status-error';
+                const statusText = response.ok ? 'Success' : 'Error';
+                
+                responseContainer.innerHTML = `
+                    <div class="status ${statusClass}">
+                        <p><strong>${statusText} (${response.status}):</strong> /api/admin/transactions</p>
+                    </div>
+                    <p>Transactions found: ${Array.isArray(data) ? data.length : 'N/A'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseContainer.innerHTML = `
+                    <div class="status status-error">
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

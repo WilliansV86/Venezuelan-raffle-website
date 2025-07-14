@@ -4,5 +4,5 @@ echo ==============================================
 echo.
 cd backend
 echo Starting backend server on port 5100...
-node server.js
-pause
+node server.cjs
+
