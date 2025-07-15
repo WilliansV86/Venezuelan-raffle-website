@@ -27,7 +27,9 @@ const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Solo se permiten archivos de imágenes'), false);
+    // Reject the file without throwing an error that would crash the server.
+    // The controller will handle the case where req.file is undefined.
+    cb(null, false);
   }
 };
 

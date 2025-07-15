@@ -38,8 +38,7 @@ const getRaffleById = asyncHandler(async (req, res) => {
   if (raffle) {
     res.json(raffle);
   } else {
-    res.status(404);
-    throw new Error('Raffle not found');
+    res.status(404).json({ success: false, message: 'Raffle not found' });
   }
 });
 
@@ -129,8 +128,7 @@ const updateRaffle = asyncHandler(async (req, res) => {
       const updatedRaffle = await raffle.save();
       res.json(updatedRaffle);
     } else {
-      res.status(404);
-      throw new Error('Raffle not found');
+      res.status(404).json({ success: false, message: 'Raffle not found' });
     }
   } catch (error) {
     console.error('Error updating raffle:', error);

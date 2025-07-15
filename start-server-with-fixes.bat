@@ -17,7 +17,7 @@ SET PORT=5100
 SET MONGO_URI=mongodb+srv://WilliansV86:Ve17767135..!!@cluster0.adlajpr.mongodb.net/raffle?retryWrites=true^&w=majority^&connectTimeoutMS=30000^&socketTimeoutMS=45000^&maxPoolSize=10^&family=4
 
 :: Admin Authentication
-SET ADMIN_KEY=test-admin-key-123
+
 SET JWT_SECRET=secreto2023
 
 :: Email Configuration (placeholder values for testing)
@@ -51,6 +51,6 @@ echo Press Ctrl+C to stop the server when finished testing.
 echo.
 
 cd backend
-node server.js
+node server.cjs
 
 pause

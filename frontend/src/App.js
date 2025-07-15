@@ -10,13 +10,13 @@ import WinnersPage from './pages/WinnersPage';
 import PastRaffleDetailPage from './pages/PastRaffleDetailPage';
 import TestPurchasePage from './pages/TestPurchasePage';
 import FormDebugPage from './pages/FormDebugPage';
+import ParticipationPage from './pages/ParticipationPage';
+import TermsPage from './pages/TermsPage';
 // Admin Page Components
 import AdminRafflesListPage from './pages/admin/AdminRafflesListPage';
 import CreateRafflePage from './pages/admin/CreateRafflePage';
 import DirectEditRafflePage from './pages/admin/DirectEditRafflePage';
 import AdminPage from './pages/AdminPage';
-import ParticipationPage from './pages/ParticipationPage';
-import TermsPage from './pages/TermsPage';
 import RaffleStatusManager from './components/admin/RaffleStatusManager';
 import LoginPage from './pages/LoginPage';
 import RequireAdmin from './components/auth/RequireAdmin';
@@ -43,24 +43,22 @@ function App() {
           <Route path="/test-purchase" element={<TestPurchasePage />} />
           <Route path="/form-debug" element={<FormDebugPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/raffle/:raffleId/participate" element={<ParticipationPage />} />
+          <Route path="*" element={<NotFoundPage />} />
 
           {/* Admin Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route path="/admin" element={
+            <RequireAdmin>
+              <AdminPage />
+            </RequireAdmin>
+          } />
+
           <Route path="/admin/raffles" element={<AdminRafflesListPage />} />
           <Route path="/admin/raffles/new" element={<CreateRafflePage />} />
           <Route path="/admin/raffles/edit/:id" element={<DirectEditRafflePage />} />
           <Route path="/admin/raffles/status" element={<RaffleStatusManager />} />
-                    <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin/login" element={<LoginPage />} />
-          <Route path="/admin" element={
-  <RequireAdmin>
-    <AdminPage />
-  </RequireAdmin>
-} />
-
-          <Route path="/raffle/:raffleId/participate" element={<ParticipationPage />} />
-          
-
-          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       

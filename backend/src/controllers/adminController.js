@@ -24,8 +24,7 @@ const authAdmin = asyncHandler(async (req, res) => {
       token: generateToken('admin_user'),
     });
   } else {
-    res.status(401);
-    throw new Error('Invalid admin key');
+    res.status(401).json({ success: false, message: 'Invalid admin key' });
   }
 });
 

@@ -16,12 +16,12 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const { data } = await api.post('/admin/login', { password });
+            const { data } = await api.post('/admin/login', { adminKey: password });
       
       if (data && data.token) {
         // Use the login function from AuthContext to update the state
         login(data);
-        navigate('/admin/dashboard', { replace: true });
+                navigate('/admin', { replace: true });
       } else {
         setError('Login failed. Please check your credentials.');
       }
