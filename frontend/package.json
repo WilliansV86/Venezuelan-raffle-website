@@ -39,6 +39,9 @@
       "last 1 safari version"
     ]
   },
+  "resolutions": {
+    "@types/jest": "27.5.2"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
     "cross-env": "^7.0.3",
