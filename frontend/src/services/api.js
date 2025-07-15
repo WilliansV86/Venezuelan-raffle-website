@@ -1,17 +1,23 @@
 import axios from 'axios';
 
+// Create an axios instance with the base URL from environment variables
+// This allows us to use different URLs for development and production
 const api = axios.create({
-  baseURL: 'http://localhost:5100/api',
+  baseURL: process.env.REACT_APP_API_URL,
   timeout: 30000, // 30-second timeout for cold starts
-  timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend está funcionando.'
+  timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend esté funcionando.'
 });
 
-// Add a request interceptor to include the token in headers
+// Add an interceptor to automatically include the auth token in every request
 api.interceptors.request.use(
   (config) => {
-    const adminInfo = JSON.parse(localStorage.getItem('adminInfo'));
-    if (adminInfo && adminInfo.token) {
-      config.headers.Authorization = `Bearer ${adminInfo.token}`;
+    try {
+      const adminInfo = JSON.parse(localStorage.getItem('adminInfo'));
+      if (adminInfo && adminInfo.token) {
+        config.headers['Authorization'] = `Bearer ${adminInfo.token}`;
+      }
+    } catch (error) {
+      console.error('Could not parse adminInfo from localStorage', error);
     }
     return config;
   },
