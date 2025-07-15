@@ -1,19 +1,28 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useLocation, Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
-export default function RequireAdmin({ children }) {
-  const location = useLocation();
-  let adminInfoRaw = localStorage.getItem('adminInfo');
-  let adminInfo = null;
-  try {
-    adminInfo = JSON.parse(adminInfoRaw);
-  } catch (e) {
-    console.warn('RequireAdmin: Failed to parse adminInfo from localStorage', e, adminInfoRaw);
-    adminInfo = null;
-  }
-  if (!adminInfo || !adminInfo.token) {
-    console.warn('RequireAdmin: No valid adminInfo found, redirecting to /admin/login', adminInfoRaw);
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
-  }
-  return children;
+const RequireAdmin = () => {
+    const { isAuthenticated, loading } = useAuth();
+    const location = useLocation();
+
+    // While the authentication state is loading, show a loading indicator.
+    // This prevents the redirect from happening before the check is complete.
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <p>Loading authentication...</p>
+            </div>
+        );
+    }
+
+    // If loading is finished and the user is authenticated, show the protected content.
+    // Otherwise, redirect them to the login page.
+    return (
+        isAuthenticated
+            ? <Outlet />
+            : <Navigate to="/admin/login" state={{ from: location }} replace />
+    );
 }
+
+export default RequireAdmin;

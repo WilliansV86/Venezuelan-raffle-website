@@ -19,7 +19,6 @@ const LoginPage = () => {
       const { data } = await api.post('/admin/login', { password });
       
       if (data && data.token) {
-        // Use the login function from AuthContext to update the state
         login(data);
         navigate('/admin/dashboard', { replace: true });
       } else {
