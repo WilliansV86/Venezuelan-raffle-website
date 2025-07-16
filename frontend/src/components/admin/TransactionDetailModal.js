@@ -17,6 +17,7 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
     const baseStyle = "px-3 py-1 text-sm font-medium rounded-full inline-block";
     switch (status) {
       case 'approved':
+      case 'completed':
         return <span className={`${baseStyle} bg-green-500/20 text-green-300`}>Aprobado</span>;
       case 'pending':
         return <span className={`${baseStyle} bg-yellow-500/20 text-yellow-300`}>Pendiente</span>;

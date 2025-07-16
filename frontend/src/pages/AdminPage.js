@@ -106,12 +106,18 @@ const AdminPage = () => {
   
   const handleTransactionStatusUpdate = async (transactionId, newStatus) => {
     try {
+      console.log(`Updating transaction ${transactionId} to status: ${newStatus}`);
       const config = { headers: { Authorization: `Bearer ${adminInfo.token}` } };
       await api.put(`/api/admin/transactions/${transactionId}/status`, { status: newStatus }, config);
-      fetchTransactions(); // Refresh transactions list
+      
+      // Update the selected transaction immediately for instant UI feedback
       if (selectedTransaction && selectedTransaction._id === transactionId) {
+        console.log('Updating selected transaction status in UI');
         setSelectedTransaction(prev => ({ ...prev, status: newStatus }));
       }
+      
+      // Then refresh the full transactions list
+      fetchTransactions();
     } catch (error) {
       console.error('Error updating transaction status:', error);
     }

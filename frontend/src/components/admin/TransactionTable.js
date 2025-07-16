@@ -7,7 +7,7 @@ const TransactionTable = ({ transactions, onRowClick }) => {
     switch (status) {
       case 'approved':
       case 'completed':
-        return <span className={`${baseClasses} bg-green-500/20 text-green-300`}>Completado</span>;
+        return <span className={`${baseClasses} bg-green-500/20 text-green-300`}>Aprobado</span>;
       case 'pending':
         return <span className={`${baseClasses} bg-yellow-500/20 text-yellow-300`}>Pendiente</span>;
       case 'rejected':
@@ -23,8 +23,9 @@ const TransactionTable = ({ transactions, onRowClick }) => {
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-700">
-              <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Transacción</th>
-              <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Rifa</th>
+              <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Transaction ID</th>
+              <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Nombre</th>
+              <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Correo</th>
               <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Monto</th>
               <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Tickets</th>
               <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-gray-300 uppercase tracking-wider">Fecha</th>
@@ -35,11 +36,9 @@ const TransactionTable = ({ transactions, onRowClick }) => {
             {transactions.length > 0 ? (
               transactions.map((tx) => (
                 <tr key={tx._id} onClick={() => onRowClick(tx)} className="hover:bg-gray-700/50 cursor-pointer transition-colors duration-200">
-                  <td className="px-6 py-5 whitespace-nowrap">
-                    <div className="text-base font-medium text-white">{tx.buyerName || 'N/A'}</div>
-                    <div className="text-sm text-gray-400 font-mono">ID: {tx._id.slice(-8)}</div>
-                  </td>
-                  <td className="px-6 py-5 whitespace-nowrap text-base text-gray-300">{tx.raffle?.name || 'N/A'}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-base text-gray-400 font-mono">{tx._id.slice(-8)}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-base font-medium text-white">{tx.buyerName || 'N/A'}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-base text-gray-300">{tx.buyerEmail || 'N/A'}</td>
                   <td className="px-6 py-5 whitespace-nowrap text-base text-green-400 font-semibold">{typeof tx.amountUSD === 'number' ? tx.amountUSD.toFixed(2) : 'N/A'}</td>
                   <td className="px-6 py-5 whitespace-nowrap text-base text-center text-white">{tx.tickets.length}</td>
                   <td className="px-6 py-5 whitespace-nowrap text-base text-gray-400">{new Date(tx.createdAt).toLocaleDateString()}</td>
@@ -48,7 +47,7 @@ const TransactionTable = ({ transactions, onRowClick }) => {
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="text-center py-16">
+                <td colSpan="7" className="text-center py-16">
                   <div className="text-gray-400 text-lg">No hay transacciones.</div>
                   <div className="text-gray-500">Cuando se realice una compra, aparecerá aquí.</div>
                 </td>
