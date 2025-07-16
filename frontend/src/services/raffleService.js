@@ -4,7 +4,9 @@ const raffleService = {
   // Get all active raffles
   getActiveRaffles: async () => {
     try {
+      console.log('Fetching active raffles...');
       const response = await api.get('/api/raffles');
+      console.log('Active raffles API response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching active raffles:', error);

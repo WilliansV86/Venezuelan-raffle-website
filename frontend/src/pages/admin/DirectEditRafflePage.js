@@ -15,41 +15,44 @@ const DirectEditRafflePage = () => {
   const [initialData, setInitialData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const [fetchLoading, setFetchLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: '',
-    description: '',
+    // description field removed
     price: 0,
     priceBS: 0,
     maxTickets: 0,
     drawDate: '',
     status: 'active',
     imageFile: null,
-    imagePreview: ''
+    imagePreview: '',
+    image: '' // To store the original image path
   });
   const [fetchError, setFetchError] = useState(null);
 
-  useEffect(() => {
+  // Extract the loadRaffleData function so it can be reused
+  const loadRaffleData = async () => {
     if (!isAdminLoggedIn()) {
       setFetchError("Acceso denegado. Por favor, configura la Admin Key.");
       setFetchLoading(false);
       return;
     }
     
-    const loadRaffleData = async () => {
-      setFetchLoading(true);
-      setFetchError(null);
+    setFetchLoading(true);
+    setFetchError(null);
       
-      // Check if we're in dev mode with mock raffles
-      const devMode = localStorage.getItem('dev_mode') === 'true';
-      const isMockRaffle = raffleId && raffleId.startsWith('mock-raffle');
+    // Check if we're in dev mode with mock raffles
+    const devMode = localStorage.getItem('dev_mode') === 'true';
+    const isMockRaffle = raffleId && raffleId.startsWith('mock-raffle');
       
-      // If in dev mode and this is a mock raffle, use mock data
-      if (devMode && isMockRaffle) {
-        console.log('🔍 DirectEditRafflePage - Using mock data for raffle:', raffleId);
-        
-        // Create mock data based on the raffle ID
-        const mockRaffles = {
+    // If in dev mode and this is a mock raffle, use mock data
+    if (devMode && isMockRaffle) {
+      console.log('🔍 DirectEditRafflePage - Using mock data for raffle:', raffleId);
+      
+      // Create mock data based on the raffle ID
+      const mockRaffles = {
           'mock-raffle-1': {
             _id: 'mock-raffle-1',
             title: 'Gran Regreso a Clases',
@@ -155,16 +158,16 @@ const DirectEditRafflePage = () => {
         // Set the state with the raffle data
         setInitialData(response.data);
         
-        // Also map response data to our form structure
+        // Map response data to our form structure using consistent field names
         setFormData({
-          name: response.data.name || '',
+          title: response.data.title || '',
           description: response.data.description || '',
           maxTickets: response.data.maxTickets || 0,
-          price: response.data.price || 0,
-          priceBS: response.data.priceBS || 0,
+          ticketPriceUSD: response.data.ticketPrice || 0,
+          ticketPriceBS: response.data.priceBS || 0,
           drawDate: response.data.drawDate || '',
           status: response.data.status || 'draft',
-          imagePreview: response.data.image || '',
+          imagePreview: response.data.imageUrl || '',
           imageFile: null // Will be set when user selects a new file
         });
       } catch (err) {
@@ -187,29 +190,37 @@ const DirectEditRafflePage = () => {
       }
     };
 
+  // Add useEffect to call loadRaffleData on component mount
+  useEffect(() => {
     loadRaffleData();
   }, [raffleId]);
 
   useEffect(() => {
     if (initialData) {
+      console.log('Setting form data from:', initialData);
       setFormData({
-        title: initialData.title || '',
-        maxTickets: initialData.maxTickets || 1000,
-        ticketPriceUSD: initialData.ticketPrice || 0,
-        ticketPriceBS: initialData.ticketPriceBS || 0,
+        // Use consistent field names that match the backend model
+        name: initialData.name || initialData.title || '',
+        // description field removed as requested
+        price: initialData.price || initialData.ticketPrice || 0,
+        priceBS: initialData.priceBS || initialData.ticketPriceBS || 0,
+        maxTickets: initialData.maxTickets || initialData.totalTickets || 1000,
+        drawDate: initialData.drawDate || '',
         status: initialData.status || 'active',
         imageFile: null,
-        imagePreview: initialData.imageUrl || ''
+        imagePreview: initialData.image || initialData.imageUrl || ''
       });
     }
   }, [initialData]);
 
-  const handleSubmit = async (formData) => {
+  // Submit form data to the API
+  const submitFormToAPI = async (formDataToSend) => {
     setLoading(true);
     setError(null);
+    setSuccess(false);
+    
     try {
       console.log('🔍 DirectEditRafflePage - Submitting raffle update');
-      console.log('🔍 DirectEditRafflePage - Form data:', formData);
       
       // Check if we're in dev mode with a mock raffle
       const devMode = localStorage.getItem('dev_mode') === 'true';
@@ -223,35 +234,62 @@ const DirectEditRafflePage = () => {
         // Simulate a delay like a network request
         setTimeout(() => {
           console.log('✅ DirectEditRafflePage - Mock update successful');
-          alert('Rifa actualizada con éxito (Modo desarrollo)');
-          navigate('/admin');
+          setSuccess(true);
+          // Stay on the same page instead of navigating away
           setLoading(false);
         }, 500);
         return;
       }
       
       // Real API update for non-mock raffles using the centralized API service
-      console.log('🔍 DEBUG - PUT request data:', JSON.stringify(formData, null, 2));
-      console.log('🔍 DEBUG - priceBS value being sent:', formData.priceBS);
+      console.log('🔍 DEBUG - Sending data to API');
 
-      const response = await api.put(`/api/raffles/${raffleId}`, formData);
-
-      console.log('✅ DirectEditRafflePage - Update successful');
-      console.log('✅ Response:', response.data);
+      // If no raffle ID, assume we're creating a new raffle (but this component is primarily for editing)
+      const isNew = !raffleId;
+      const endpoint = isNew ? '/api/raffles' : `/api/raffles/${raffleId}`;
+      const method = isNew ? 'post' : 'put';
       
-      alert('Rifa actualizada con éxito');
-      navigate('/admin');
-    } catch (err) {
-      console.error('❌ DirectEditRafflePage - Error updating raffle:', err);
+      console.log(`🔍 DEBUG - API ${method.toUpperCase()} request to ${endpoint}`);
       
-      // Detailed error logging
-      if (err.response) {
-        console.error('❌ Status:', err.response.status);
-        console.error('❌ Data:', err.response.data);
-        console.error('❌ Headers:', err.response.headers);
+      try {
+        const response = await api[method](endpoint, formDataToSend);
+        console.log('✅ DirectEditRafflePage - Update successful');
+        console.log('✅ Response:', response.data);
+        
+        // Set success state and refresh data to show updated values
+        setSuccess(true);
+        
+        // Refresh the form data after successful update
+        setTimeout(() => {
+          // Reload data from the API to show the updated values
+          loadRaffleData();
+        }, 1000);
+      } catch (apiError) {
+        console.error('❌ DirectEditRafflePage - API Error:', apiError);
+        
+        // Detailed error logging
+        if (apiError.response) {
+          console.error('❌ Status:', apiError.response.status);
+          console.error('❌ Data:', apiError.response.data);
+          console.error('❌ Headers:', apiError.response.headers);
+          
+          // Handle specific error cases
+          if (apiError.response.status === 401) {
+            setError('Sesión expirada o inválida. Por favor inicie sesión nuevamente.');
+            setTimeout(() => {
+              localStorage.removeItem('adminInfo'); // Clear invalid token
+              navigate('/admin/login'); // Redirect to login
+            }, 2000);
+          } else {
+            setError(`Error al actualizar la rifa: ${apiError.response?.data?.message || apiError.message || 'Error desconocido'}`);
+          }
+        } else {
+          setError(`Error de conexión: ${apiError.message || 'No se pudo conectar con el servidor'}`);
+        }
       }
-      
-      setError(`Error al actualizar la rifa: ${err.response?.data?.message || err.message || 'Error desconocido'}`);
+    } catch (err) {
+      console.error('❌ DirectEditRafflePage - Unexpected error:', err);
+      setError(`Error inesperado: ${err.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -260,6 +298,24 @@ const DirectEditRafflePage = () => {
   const handleCancel = () => {
     console.log('Cancelando edición');
     navigate('/admin'); // Navigate back to admin page
+  };
+  
+  // Function to safely navigate to admin panel's raffle management section
+  const navigateToAdminPanel = () => {
+    // Navigate to admin page with state parameter to show raffles view
+    navigate('/admin', { 
+      replace: true,
+      state: { initialView: 'raffles' } 
+    });
+  };
+  
+  // Function to navigate to the transactions page
+  const navigateToTransactions = () => {
+    // Navigate to admin page with state parameter to show transactions view
+    navigate('/admin', { 
+      replace: true,
+      state: { initialView: 'transactions' } 
+    });
   };
 
   if (fetchLoading) {
@@ -312,28 +368,119 @@ const DirectEditRafflePage = () => {
     fileInputRef.current.click();
   };
 
+  const validateForm = () => {
+    const errors = {};
+    
+    // Check required fields
+    if (!formData.name || formData.name.trim() === '') {
+      errors.name = 'El nombre de la rifa es requerido';
+    } else if (formData.name.length < 3) {
+      errors.name = 'El nombre debe tener al menos 3 caracteres';
+    }
+    
+    // Description validation removed as field has been removed
+    
+    if (!formData.maxTickets || formData.maxTickets <= 0) {
+      errors.maxTickets = 'El número de tickets debe ser mayor que 0';
+    } else if (formData.maxTickets > 10000) {
+      errors.maxTickets = 'El máximo número de tickets es 10,000';
+    }
+    
+    if (!formData.price || formData.price <= 0) {
+      errors.price = 'El precio en USD debe ser mayor que 0';
+    }
+    
+    if (formData.priceBS === undefined || formData.priceBS === null || formData.priceBS < 0) {
+      errors.priceBS = 'El precio en Bs debe ser 0 o mayor';
+    }
+    
+    if (!formData.drawDate) {
+      errors.drawDate = 'La fecha del sorteo es obligatoria';
+    } else {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedDate = new Date(formData.drawDate);
+      
+      if (selectedDate < today) {
+        errors.drawDate = 'La fecha del sorteo no puede ser en el pasado';
+      }
+    }
+    
+    if (!formData.status) {
+      errors.status = 'El estado de la rifa es obligatorio';
+    }
+    
+    // Update validation errors state
+    setValidationErrors(errors);
+    
+    // Return true if no errors
+    return Object.keys(errors).length === 0;
+  };
+  
+  // Error alert component for form fields
+  const ErrorFieldMessage = ({ message }) => {
+    if (!message) return null;
+    return (
+      <div className="text-red-500 text-xs mt-1">{message}</div>
+    );
+  };
+
   const handleSaveChanges = (e) => {
     e.preventDefault();
     
-    console.log('🔍 DEBUG - Current formData:', formData);
+    // Clear previous messages
+    setError(null);
+    setSuccess(false);
     
-    // Create object with field names that match the backend expectations
-    const raffleData = {
-      name: formData.name,
-      description: formData.description || initialData?.description || '',
-      maxTickets: Number(formData.maxTickets),
-      price: Number(formData.price), // Main price in USD
-      priceBS: Number(formData.priceBS), // Price in Bs
-      drawDate: formData.drawDate || initialData?.drawDate,
-      status: formData.status,
-      image: formData.imagePreview || initialData?.image
-      // Other fields will be preserved from the original raffle data
-    };
+    // Validate form before submission
+    if (!validateForm()) {
+      // Scroll to top to show errors
+      window.scrollTo(0, 0);
+      return;
+    }
     
-    console.log('🔍 DEBUG - Sending raffleData:', raffleData);
+    console.log('🔍 DEBUG - Saving Changes. Form data:', formData);
     
-    // Send only the fields we've modified
-    handleSubmit(raffleData);
+    // Show confirmation dialog
+    if (window.confirm('¿Seguro que desea guardar los cambios?')) {
+      setLoading(true);
+      
+      // Prepare form data for API
+      const formDataToSend = new FormData();
+      
+      // Add text fields (convert number strings to actual numbers)
+      formDataToSend.append('name', formData.name.trim());
+      // Description field removed as requested by user
+      formDataToSend.append('price', Number(formData.price));
+      formDataToSend.append('priceBS', Number(formData.priceBS)); // Always send priceBS, even if 0
+      formDataToSend.append('maxTickets', Number(formData.maxTickets));
+      formDataToSend.append('drawDate', formData.drawDate);
+      formDataToSend.append('status', formData.status);
+      
+      // Add image if a new one was selected
+      if (formData.imageFile) {
+        formDataToSend.append('image', formData.imageFile);
+        console.log('🔍 DEBUG - Sending image file:', formData.imageFile.name);
+      } else if (formData.imagePreview && formData.imagePreview.startsWith('data:')) {
+        // If there's a data URL but no file, it's a previously uploaded image preview
+        console.log('🔍 DEBUG - No new image selected, image preview exists');
+      } else if (initialData && (initialData.image || initialData.imageUrl)) {
+        // If no new image and no preview, but we have the original image path, pass it along
+        formDataToSend.append('image', initialData.image || initialData.imageUrl);
+        console.log('🔍 DEBUG - Using existing image path:', initialData.image || initialData.imageUrl);
+      } else {
+        console.log('🔍 DEBUG - No image available');
+      }
+      
+      // Log the form data being sent
+      console.log('🔍 DEBUG - FormData being sent:');
+      for (const pair of formDataToSend.entries()) {
+        console.log(`    ${pair[0]}: ${pair[1]}`);
+      }
+      
+      // Submit to API
+      submitFormToAPI(formDataToSend);
+    }
   };
 
   return (
@@ -343,16 +490,13 @@ const DirectEditRafflePage = () => {
           <h1 className="text-2xl font-bold">Gestión de Rifas</h1>
           <div className="flex space-x-3">
             <button 
-              onClick={() => {
-                // Make sure we're staying on admin section, this will reuse authentication
-                navigate('/admin', { state: { authenticated: true, adminKey, showRaffles: true } });
-              }}
+              onClick={navigateToAdminPanel}
               className="bg-blue-800 hover:bg-blue-700 text-white py-2 px-4 rounded-md focus:outline-none border border-blue-700 transition duration-200"
             >
               Volver a Gestión de Rifas
             </button>
             <button 
-              onClick={handleCancel}
+              onClick={navigateToTransactions}
               className="bg-blue-800 hover:bg-blue-700 text-white py-2 px-4 rounded-md focus:outline-none border border-blue-700 transition duration-200"
             >
               Volver al Panel Admin
@@ -392,7 +536,49 @@ const DirectEditRafflePage = () => {
           <div className="bg-[#111827] p-4 rounded-lg shadow border border-blue-900">
             <h2 className="text-xl font-bold mb-4">Editar Rifa</h2>
             
-            {error && <div className="bg-red-900/50 border border-red-700 text-white p-3 rounded-md mb-4">{error}</div>}
+            {/* Success message */}
+            {success && (
+              <div className="bg-green-900/50 border border-green-600 text-white p-3 rounded-md mb-4 flex justify-between items-center">
+                <span>
+                  <strong>¡Éxito!</strong> La rifa ha sido actualizada correctamente.
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => setSuccess(false)} 
+                  className="text-green-300 hover:text-white focus:outline-none"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            
+            {/* Error message */}
+            {error && (
+              <div className="bg-red-900/50 border border-red-700 text-white p-3 rounded-md mb-4 flex justify-between items-center">
+                <span>
+                  <strong>Error:</strong> {error}
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => setError(null)} 
+                  className="text-red-300 hover:text-white focus:outline-none"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            
+            {/* Validation errors summary */}
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="bg-yellow-900/50 border border-yellow-600 text-white p-3 rounded-md mb-4">
+                <strong>Por favor corrige los siguientes campos:</strong>
+                <ul className="list-disc ml-5 mt-2">
+                  {Object.entries(validationErrors).map(([field, message]) => (
+                    <li key={field}>{message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             
             {initialData && (
               <form onSubmit={handleSaveChanges} className="space-y-4">
@@ -444,31 +630,21 @@ const DirectEditRafflePage = () => {
                   </div>
                 </div>
                 
-                {/* Title (name in backend) */}
+                {/* Name */}
                 <div>
-                  <label htmlFor="name" className="block font-bold mb-1">Título de la Rifa</label>
+                  <label htmlFor="name" className="block font-bold mb-1">Nombre de la Rifa</label>
                   <input
                     type="text"
                     id="name"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full p-2 bg-[#1e293b] border ${validationErrors.name ? 'border-red-500' : 'border-blue-800'} rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500`}
                   />
+                  <ErrorFieldMessage message={validationErrors.name} />
                 </div>
                 
-                {/* Description */}
-                <div>
-                  <label htmlFor="description" className="block font-bold mb-1">Descripción</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description || ''}
-                    onChange={handleChange}
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    rows="3"
-                  />
-                </div>
+                {/* Description field removed as requested */}
                 
                 {/* Max tickets */}
                 <div>
@@ -480,8 +656,9 @@ const DirectEditRafflePage = () => {
                     value={formData.maxTickets}
                     onChange={handleChange}
                     min="1"
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full p-2 bg-[#1e293b] border ${validationErrors.maxTickets ? 'border-red-500' : 'border-blue-800'} rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500`}
                   />
+                  <ErrorFieldMessage message={validationErrors.maxTickets} />
                 </div>
                 
                 {/* Draw Date */}
@@ -493,8 +670,9 @@ const DirectEditRafflePage = () => {
                     name="drawDate"
                     value={formData.drawDate}
                     onChange={handleChange}
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full p-2 bg-[#1e293b] border ${validationErrors.drawDate ? 'border-red-500' : 'border-blue-800'} rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500`}
                   />
+                  <ErrorFieldMessage message={validationErrors.drawDate} />
                 </div>
                 
                 {/* USD Price */}
@@ -508,8 +686,9 @@ const DirectEditRafflePage = () => {
                     onChange={handleChange}
                     min="0"
                     step="0.01"
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full p-2 bg-[#1e293b] border ${validationErrors.price ? 'border-red-500' : 'border-blue-800'} rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500`}
                   />
+                  <ErrorFieldMessage message={validationErrors.price} />
                 </div>
                 
                 {/* Bs Price */}
@@ -522,41 +701,39 @@ const DirectEditRafflePage = () => {
                     value={formData.priceBS}
                     onChange={handleChange}
                     min="0"
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full p-2 bg-[#1e293b] border ${validationErrors.priceBS ? 'border-red-500' : 'border-blue-800'} rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500`}
                   />
+                  <ErrorFieldMessage message={validationErrors.priceBS} />
                 </div>
                 
                 {/* Status dropdown */}
                 <div>
-                  <label htmlFor="status" className="block font-bold mb-1">Estado de la Rifa</label>
+                  <label htmlFor="status" className="block font-bold mb-1">Estado</label>
                   <select
                     id="status"
                     name="status"
-                    value={formData.status || 'draft'}
+                    value={formData.status}
                     onChange={handleChange}
-                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full p-2 bg-[#1e293b] border ${validationErrors.status ? 'border-red-500' : 'border-blue-800'} rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500`}
                   >
+                    <option value="">Seleccione un estado</option>
                     <option value="draft">Borrador</option>
-                    <option value="active">Activa</option>
-                    <option value="completed">Completada</option>
+                    <option value="active">Activo</option>
+                    <option value="completed">Completado</option>
                   </select>
+                  <ErrorFieldMessage message={validationErrors.status} />
                 </div>
                 
                 {/* Buttons */}
-                <div className="flex justify-between">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/admin')}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
-                    disabled={loading}
-                  >
-                    Cancelar
-                  </button>
+                <div className="flex justify-center mt-6">
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md"
                     disabled={loading}
+                    className={`${loading ? 'bg-blue-900 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-600'} text-white py-2 px-4 rounded-md flex items-center gap-2`}
                   >
+                    {loading && (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    )}
                     {loading ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>

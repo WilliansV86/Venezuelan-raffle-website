@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaArrowUp, FaArrowDown, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaArrowUp, FaArrowDown, FaEdit, FaTrash, FaCheckCircle, FaPlay } from 'react-icons/fa';
 
 const RaffleListTable = ({ raffles, onPromote, onDemote, onEdit, onDelete, isSubmitting }) => {
 
@@ -33,9 +33,10 @@ const RaffleListTable = ({ raffles, onPromote, onDemote, onEdit, onDelete, isSub
         {/* Header for larger screens */}
         <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 text-sm font-bold text-gray-400 uppercase">
           <div className="col-span-3">Nombre</div>
+          <div className="col-span-2">Precios</div>
           <div className="col-span-2">Estado</div>
-          <div className="col-span-3">Progreso</div>
-          <div className="col-span-2">Vendidos</div>
+          <div className="col-span-2">Progreso</div>
+          <div className="col-span-1">Vendidos</div>
           <div className="col-span-2 text-right">Acciones</div>
         </div>
 
@@ -47,33 +48,51 @@ const RaffleListTable = ({ raffles, onPromote, onDemote, onEdit, onDelete, isSub
               {/* Column 1: Name */}
               <div className="md:col-span-3 font-medium text-white">
                 <span className="md:hidden font-bold text-gray-400">Nombre: </span>
-                {raffle.name}
+                {raffle.name || raffle.title}
+                <div className="text-xs text-gray-500 truncate">{raffle._id}</div>
               </div>
               
-              {/* Column 2: Status */}
+              {/* Column 2: Prices */}
+              <div className="md:col-span-2">
+                <div className="text-sm text-gray-300">USD: ${raffle.ticketPrice || raffle.price}</div>
+                <div className="text-sm text-gray-300">Bs: {raffle.priceBS || raffle.ticketPriceBs || 'N/A'}</div>
+              </div>
+              
+              {/* Column 3: Status */}
               <div className="md:col-span-2">
                 {getStatusBadge(raffle.status)}
+                <div className="mt-1 space-y-1">
+                  <button 
+                    onClick={() => onPromote(raffle._id)} 
+                    disabled={isSubmitting || raffle.status === 'active'} 
+                    className="px-2 py-0.5 text-xs flex items-center justify-center space-x-1 w-full rounded bg-green-500/20 hover:bg-green-500/40 text-green-300 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <FaPlay size={8} /><span>Activar</span>
+                  </button>
+                  <button 
+                    onClick={() => onDemote(raffle._id)} 
+                    disabled={isSubmitting || raffle.status === 'completed'} 
+                    className="px-2 py-0.5 text-xs flex items-center justify-center space-x-1 w-full rounded bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <FaCheckCircle size={8} /><span>Completar</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Column 3: Progress */}
-              <div className="md:col-span-3">
-                <ProgressBar sold={raffle.soldTickets || 0} total={raffle.maxTickets} />
+              {/* Column 4: Progress */}
+              <div className="md:col-span-2">
+                <ProgressBar sold={raffle.soldTickets || 0} total={raffle.maxTickets || raffle.totalTickets} />
+                <div className="text-xs text-gray-400 mt-1 text-center">
+                  {Math.round(((raffle.soldTickets || 0) / (raffle.maxTickets || raffle.totalTickets || 1)) * 100)}%
+                </div>
               </div>
 
-              {/* Column 4: Sold/Total */}
-              <div className="md:col-span-2 text-sm text-gray-300">
+              {/* Column 5: Sold/Total */}
+              <div className="md:col-span-1 text-sm text-gray-300">
                 <span className="md:hidden font-bold text-gray-400">Vendidos: </span>
-                {raffle.soldTickets || 0} / {raffle.maxTickets}
+                {raffle.soldTickets || 0} / {raffle.maxTickets || raffle.totalTickets}
               </div>
 
-              {/* Column 5: Actions */}
+              {/* Column 6: Actions */}
               <div className="md:col-span-2 flex justify-end items-center space-x-3">
-                {raffle.status !== 'active' && (
-                  <button onClick={() => onPromote(raffle._id)} disabled={isSubmitting} className="text-green-400 hover:text-green-300 disabled:text-gray-600"><FaArrowUp title="Promover a Activo" /></button>
-                )}
-                {raffle.status === 'active' && (
-                  <button onClick={() => onDemote(raffle._id)} disabled={isSubmitting} className="text-yellow-400 hover:text-yellow-300 disabled:text-gray-600"><FaArrowDown title="Mover a Completado" /></button>
-                )}
                 <button onClick={() => onEdit(raffle._id)} disabled={isSubmitting} className="text-blue-400 hover:text-blue-300 disabled:text-gray-600"><FaEdit title="Editar" /></button>
                 <button onClick={() => onDelete(raffle._id)} disabled={isSubmitting} className="text-red-400 hover:text-red-300 disabled:text-gray-600"><FaTrash title="Eliminar" /></button>
               </div>

@@ -7,6 +7,7 @@ const CreateRaffleForm = ({ adminToken, onRaffleCreated }) => {
   const [price, setPrice] = useState('');
   const [priceBs, setPriceBs] = useState('');
   const [maxTickets, setMaxTickets] = useState('');
+  const [drawDate, setDrawDate] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [error, setError] = useState(null);
@@ -62,13 +63,14 @@ const CreateRaffleForm = ({ adminToken, onRaffleCreated }) => {
       const newRaffle = {
         name,
         price: Number(price),
-        priceBs: Number(priceBs),
+        priceBS: Number(priceBs), // Note: Changed to priceBS with capital BS to match backend
         maxTickets: Number(maxTickets),
-        imageUrl: finalImageUrl,
+        drawDate, // Added required field
+        image: finalImageUrl, // Changed from imageUrl to image to match backend
         status: 'draft',
       };
 
-      await api.post('/admin/raffles', newRaffle, {
+      await api.post('/api/raffles', newRaffle, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
 
@@ -77,6 +79,7 @@ const CreateRaffleForm = ({ adminToken, onRaffleCreated }) => {
       setPrice('');
       setPriceBs('');
       setMaxTickets('');
+      setDrawDate(''); // Reset draw date
       setImageFile(null);
       setImagePreview('');
       document.getElementById('imageUpload').value = null; // Clear file input
@@ -111,6 +114,10 @@ const CreateRaffleForm = ({ adminToken, onRaffleCreated }) => {
         <div>
           <label htmlFor="maxTickets" className="block text-sm font-medium text-gray-300">Máximo de Tickets</label>
           <input type="number" id="maxTickets" value={maxTickets} onChange={(e) => setMaxTickets(e.target.value)} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <div>
+          <label htmlFor="drawDate" className="block text-sm font-medium text-gray-300">Fecha del Sorteo</label>
+          <input type="date" id="drawDate" value={drawDate} onChange={(e) => setDrawDate(e.target.value)} required className="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
         </div>
         
         {/* File Input & Preview */}

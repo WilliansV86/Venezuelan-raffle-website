@@ -10,13 +10,35 @@ const getRaffles = asyncHandler(async (req, res) => {
     // Filter to only return active raffles for the public homepage
     console.log('[getRaffles] Attempting to fetch raffles from database...');
     
-    // Use lean() for better performance and ensure we're only getting active raffles
-    const raffles = await Raffle.find({ status: 'active' })
-      .sort({ createdAt: -1 })
-      .lean();
+    // Log all raffles to debug status issues
+    const allRaffles = await Raffle.find({}).lean();
+    console.log('[getRaffles] All raffles in database:', allRaffles.map(r => ({ 
+      id: r._id, 
+      title: r.title || r.name, 
+      status: r.status 
+    })));
+    
+    // Use lean() for better performance with case-insensitive status comparison
+    // This will match 'active', 'Active', etc.
+    const raffles = await Raffle.find({ 
+      $or: [
+        { status: 'active' }, 
+        { status: 'Active' },
+        { status: 'ACTIVE' }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .lean();
       
     console.log('[getRaffles] Database query completed.');
     console.log('Active raffles count:', raffles.length);
+    if (raffles.length > 0) {
+      console.log('First active raffle:', { 
+        id: raffles[0]._id, 
+        title: raffles[0].title || raffles[0].name, 
+        status: raffles[0].status 
+      });
+    }
     
     // Always return a consistent format, even if no raffles are found
     return res.json({
@@ -122,8 +144,8 @@ const updateRaffle = asyncHandler(async (req, res) => {
       // Update raffle properties
       if (name) raffle.name = name;
       if (description) raffle.description = description;
-      if (price) raffle.price = Number(price);
-      if (priceBS) raffle.priceBS = Number(priceBS);
+      if (price !== undefined) raffle.price = Number(price);
+      if (priceBS !== undefined) raffle.priceBS = Number(priceBS); // Allow 0 value
       if (maxTickets) raffle.maxTickets = Number(maxTickets);
       if (drawDate) raffle.drawDate = drawDate;
       raffle.image = imagePath;

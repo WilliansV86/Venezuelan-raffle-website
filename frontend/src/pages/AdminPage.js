@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,8 +18,11 @@ const AdminPage = () => {
   const { auth, logout } = useAuth();
   const adminInfo = auth.adminInfo;
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [view, setView] = useState('transactions'); // Default to transactions view
+  // Set initial view based on state passed from navigation, default to transactions if none
+  const initialView = location.state?.initialView || 'transactions';
+  const [view, setView] = useState(initialView); // Use the initial view from navigation state
 
   // State for raffles
   const [raffles, setRaffles] = useState([]);

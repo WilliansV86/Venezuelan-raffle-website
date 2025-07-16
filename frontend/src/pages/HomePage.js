@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import RaffleCard from '../components/raffle/RaffleCard';
-import { FaGift, FaHistory } from 'react-icons/fa';
+import { FaGift, FaHistory, FaSync } from 'react-icons/fa';
 import SocialLinks from '../components/common/SocialLinks';
 import Confetti from 'react-confetti';
 import raffleService from '../services/raffleService';
@@ -14,29 +14,72 @@ const HomePage = () => {
   const [error, setError] = useState(null);
   const [showConfetti, setShowConfetti] = useState(true);
 
-  useEffect(() => {
-    const fetchRaffles = async () => {
-      try {
-        const [activeRes, pastRes] = await Promise.all([
-          raffleService.getActiveRaffles(),
-          raffleService.getPastRaffles(),
-        ]);
+  // Function to fetch the latest raffles data
+  const fetchRaffles = async () => {
+    try {
+      setLoading(true);
+      const [activeRes, pastRes] = await Promise.all([
+        raffleService.getActiveRaffles(),
+        raffleService.getPastRaffles(),
+      ]);
 
-        if (activeRes && activeRes.success && activeRes.data && activeRes.data.length > 0) {
-          setActiveRaffle(activeRes.data[0]);
-        }
-
-        if (pastRes && pastRes.success && pastRes.data && pastRes.data.length > 0) {
-          setPastRaffle(pastRes.data[0]);
-        }
-      } catch (err) {
-        setError('No se pudieron cargar los sorteos. Por favor, intente más tarde.');
-        console.error("Error fetching raffles:", err);
-      } finally {
-        setLoading(false);
+      // More detailed debugging for active raffles
+      console.log('Active raffles response structure:', JSON.stringify(activeRes));
+      
+      if (activeRes && activeRes.success && activeRes.data && activeRes.data.length > 0) {
+        console.log('Active raffle found:', activeRes.data[0].title || activeRes.data[0].name);
+        console.log('Full active raffle data:', JSON.stringify(activeRes.data[0]));
+        setActiveRaffle(activeRes.data[0]);
+      } else {
+        console.log('No active raffles found. Response:', JSON.stringify(activeRes));
+        setActiveRaffle(null);
       }
-    };  
+
+      if (pastRes && pastRes.success && pastRes.data && pastRes.data.length > 0) {
+        console.log('Past raffle found:', pastRes.data[0].title);
+        setPastRaffle(pastRes.data[0]);
+      } else {
+        console.log('No past raffles found');
+        setPastRaffle(null);
+      }
+    } catch (err) {
+      setError('No se pudieron cargar los sorteos. Por favor, intente más tarde.');
+      console.error("Error fetching raffles:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fetch raffles when the component mounts
+  useEffect(() => {
     fetchRaffles();
+    
+    // Set up a refresh interval that runs every 30 seconds
+    const refreshInterval = setInterval(() => {
+      console.log('Auto-refreshing raffle data...');
+      fetchRaffles();
+    }, 30000); // 30 seconds
+    
+    // Clean up interval when component unmounts
+    return () => clearInterval(refreshInterval);
+  }, []);
+  
+  // Add a refresh mechanism that runs when the page becomes visible again
+  useEffect(() => {
+    // This will run when the user returns to this page after navigating away
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('HomePage is visible, refreshing raffle data...');
+        fetchRaffles();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Clean up the event listener when component unmounts
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return (
@@ -56,8 +99,14 @@ const HomePage = () => {
         />
       )}
       <div className="container mx-auto px-4 py-8">
-        <header className="text-center pt-8 pb-12">
+        <header className="text-center pt-8 pb-6 relative">
           <h1 className="text-5xl font-heading text-white uppercase" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)' }}>Nuestros Sorteos</h1>
+          <button 
+            onClick={fetchRaffles} 
+            className="absolute right-4 top-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-2 transition-colors duration-300 flex items-center justify-center"
+            title="Actualizar sorteos">
+            <FaSync className={loading ? 'animate-spin' : ''} />
+          </button>
         </header>
 
         <main>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchAdminRaffles, deleteRaffleAdmin } from '../../services/apiService';
+import { fetchAdminRaffles, deleteRaffleAdmin, updateRaffleStatus } from '../../services/apiService';
 import { setAdminKey, getAdminKey, isAdminLoggedIn } from '../../utils/adminAuth';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
@@ -77,6 +77,23 @@ const AdminRafflesListPage = () => {
     }
   };
 
+  const handleUpdateRaffleStatus = async (id, newStatus) => {
+    if (!isAdminLoggedIn()) {
+      alert('Por favor, configure la Admin Key.');
+      return;
+    }
+    
+    try {
+      await updateRaffleStatus(id, newStatus);
+      alert(`Estatus del sorteo actualizado a: ${newStatus}`);
+      // Reload raffles after status change
+      loadRaffles();
+    } catch (err) {
+      console.error('Error updating raffle status:', err);
+      setError(err.response?.data?.message || 'Error al actualizar el estatus del sorteo.');
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Panel de Administración de Sorteos</h1>
@@ -119,8 +136,9 @@ const AdminRafflesListPage = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Boletos</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precios</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boletos</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progreso</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
@@ -132,21 +150,53 @@ const AdminRafflesListPage = () => {
                     <div className="text-sm font-medium text-gray-900">{raffle.title}</div>
                     <div className="text-xs text-gray-500">{raffle._id}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${raffle.ticketPrice}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{raffle.totalTickets}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">USD: ${raffle.ticketPrice}</div>
+                    <div className="text-sm text-gray-500">Bs: {raffle.priceBS || raffle.ticketPriceBs || 'N/A'}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">Total: {raffle.totalTickets}</div>
+                    <div className="text-sm text-gray-500">Vendidos: {raffle.soldTickets || 0}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div 
+                        className="bg-blue-600 h-2.5 rounded-full" 
+                        style={{ width: `${((raffle.soldTickets || 0) / raffle.totalTickets) * 100}%` }}>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {Math.round(((raffle.soldTickets || 0) / raffle.totalTickets) * 100)}%
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      raffle.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      raffle.status === 'active' ? 'bg-green-100 text-green-800' : 
+                      raffle.status === 'completed' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {raffle.isActive ? 'Activo' : 'Inactivo'}
+                      {raffle.status === 'active' ? 'Activo' : 
+                       raffle.status === 'completed' ? 'Completado' : raffle.status || 'Borrador'}
                     </span>
+                    <div className="mt-2 space-y-1">
+                      <button 
+                        onClick={() => handleUpdateRaffleStatus(raffle._id, 'active')} 
+                        className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 w-full">
+                        Activar
+                      </button>
+                      <button 
+                        onClick={() => handleUpdateRaffleStatus(raffle._id, 'completed')} 
+                        className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 w-full">
+                        Completar
+                      </button>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button onClick={() => navigate(`/admin/raffles/edit/${raffle._id}`)} className="text-indigo-600 hover:text-indigo-900">Editar</button>
-                    <button onClick={() => handleDeleteRaffle(raffle._id)} className="text-red-600 hover:text-red-900">Eliminar</button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-y-2">
+                    <button onClick={() => navigate(`/admin/raffles/edit/${raffle._id}`)} className="block w-full text-indigo-600 hover:text-indigo-900 border border-indigo-600 rounded px-2 py-1">Editar</button>
+                    <button onClick={() => handleDeleteRaffle(raffle._id)} className="block w-full text-red-600 hover:text-red-900 border border-red-600 rounded px-2 py-1">Eliminar</button>
                   </td>
                 </tr>
               ))}
+            
             </tbody>
           </table>
         </div>

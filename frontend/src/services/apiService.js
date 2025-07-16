@@ -37,6 +37,7 @@ export const fetchAdminRaffles = () => {
 export const createRaffleAdmin = (raffleData) => apiClient.post('/raffles', raffleData);
 export const updateRaffleAdmin = (id, raffleData) => apiClient.put(`/raffles/${id}`, raffleData);
 export const deleteRaffleAdmin = (id) => apiClient.delete(`/raffles/${id}`);
+export const updateRaffleStatus = (id, status) => apiClient.put(`/raffles/${id}/status`, { status });
 // TODO: Need a way to fetch ALL raffles for admin, including inactive ones.
 // For now, fetchRaffles will get active ones. An admin version might be GET /raffles?all=true or similar.
 
