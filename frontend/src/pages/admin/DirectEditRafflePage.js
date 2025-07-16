@@ -1,58 +1,33 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 import { isAdminLoggedIn } from '../../utils/adminAuth';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 
-// Define API URL constants with multiple possible backend server URLs
-const API_URLS = [
-  'http://localhost:5100/api', // Current active backend server 
-  '/api',                     // Production/relative path
-  'http://localhost:5000/api', // Alternative common port
-  'http://localhost:3001/api', // Another common API port
-  'http://localhost:8080/api'  // Another possibility
-];
-
-// Function to find a working API URL
-const findWorkingApiUrl = async (testEndpoint = '/health') => {
-  for (const url of API_URLS) {
-    try {
-      // Try a simple test endpoint
-      await axios.get(`${url}${testEndpoint}`); 
-      console.log(`Found working API URL: ${url}`);
-      return url;
-    } catch (err) {
-      console.warn(`API URL ${url} failed health check`);
-      // Continue to next URL
-    }
-  }
-  
-  // If we reach here, no URLs worked with the test endpoint
-  // Let's try the first URL anyway as our best guess
-  return API_URLS[0];
-};
+// Using the centralized API service from api.js
+// This ensures consistent API URL and authentication across the application
 
 const DirectEditRafflePage = () => {
   const { id: raffleId } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const adminKey = localStorage.getItem('admin_key');
   const [initialData, setInitialData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
+    description: '',
+    price: 0,
+    priceBS: 0,
     maxTickets: 0,
-    ticketPriceUSD: 0,
-    ticketPriceBS: 0,
+    drawDate: '',
     status: 'active',
     imageFile: null,
     imagePreview: ''
   });
   const [fetchError, setFetchError] = useState(null);
-  const [apiUrl, setApiUrl] = useState(API_URLS[0]); // Initialize with first option
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
@@ -157,7 +132,6 @@ const DirectEditRafflePage = () => {
         
         if (data) {
           console.log('✅ DirectEditRafflePage - Using mock raffle data:', data);
-          setApiUrl('http://localhost:5100/api'); // Default API URL for mock mode
           
           // Add artificial delay to simulate loading
           setTimeout(() => {
@@ -169,52 +143,29 @@ const DirectEditRafflePage = () => {
       }
       
       try {
-        // Try to find a working API URL first
-        console.log('🔍 DirectEditRafflePage - Finding working API URL...');
-        const workingUrl = await findWorkingApiUrl();
-        setApiUrl(workingUrl);
-        console.log('🔍 DirectEditRafflePage - Using API URL:', workingUrl);
-        
         console.log('🔍 DirectEditRafflePage - Loading raffle data');
         console.log('🔍 DirectEditRafflePage - Raffle ID:', raffleId);
-        console.log('🔍 DirectEditRafflePage - API URL:', `${workingUrl}/raffles/${raffleId}`);
-        console.log('🔍 DirectEditRafflePage - Admin Key present:', !!localStorage.getItem('admin_key'));
         
-        const response = await axios.get(
-          `${workingUrl}/raffles/${raffleId}`,
-          {
-            headers: {
-              'x-admin-key': localStorage.getItem('admin_key')
-            }
-          }
-        );
+        // Use the centralized API service that handles auth automatically
+        const response = await api.get(`/api/raffles/${raffleId}`);
         
         console.log('✅ DirectEditRafflePage - API Response:', response.data);
         console.log('🔍 DEBUG - priceBS from API:', response.data.priceBS);
-        console.log('🔍 DEBUG - ticketPriceBS from API:', response.data.ticketPriceBS);
         
-        const data = response.data;
+        // Set the state with the raffle data
+        setInitialData(response.data);
         
-        // Format initial data for the form
-        setInitialData({
-          title: data.title || '',
-          description: data.description || '',
-          imageUrl: data.imageUrl || '',
-          ticketPrice: data.ticketPrice || 0,
-          ticketPriceBS: data.priceBS || 0, // Add this line to grab priceBS from API response
-          currencyCode: data.currencyCode || 'USD',
-          exchangeRate: data.exchangeRate || 0,
-          startDate: data.startDate ? new Date(data.startDate).toISOString().split('T')[0] : '',
-          endDate: data.endDate ? new Date(data.endDate).toISOString().split('T')[0] : '',
-          drawDate: data.drawDate ? new Date(data.drawDate).toISOString().split('T')[0] : '',
-          maxTickets: data.maxTickets || 10000,
-          minTicketsPerPurchase: data.minTicketsPerPurchase || {
-            'pago-movil': 2,
-            'zelle': 10,
-            'binance': 10
-          },
-          prize: data.prize || {},
-          status: data.status || 'draft'
+        // Also map response data to our form structure
+        setFormData({
+          name: response.data.name || '',
+          description: response.data.description || '',
+          maxTickets: response.data.maxTickets || 0,
+          price: response.data.price || 0,
+          priceBS: response.data.priceBS || 0,
+          drawDate: response.data.drawDate || '',
+          status: response.data.status || 'draft',
+          imagePreview: response.data.image || '',
+          imageFile: null // Will be set when user selects a new file
         });
       } catch (err) {
         console.error('❌ DirectEditRafflePage - Error loading raffle data:', err);
@@ -259,7 +210,6 @@ const DirectEditRafflePage = () => {
     try {
       console.log('🔍 DirectEditRafflePage - Submitting raffle update');
       console.log('🔍 DirectEditRafflePage - Form data:', formData);
-      console.log('🔍 DirectEditRafflePage - Using API URL:', apiUrl);
       
       // Check if we're in dev mode with a mock raffle
       const devMode = localStorage.getItem('dev_mode') === 'true';
@@ -280,60 +230,17 @@ const DirectEditRafflePage = () => {
         return;
       }
       
-      // Real API update for non-mock raffles
-      // Get admin key from localStorage
-      const adminKey = localStorage.getItem('admin_key');
+      // Real API update for non-mock raffles using the centralized API service
+      console.log('🔍 DEBUG - PUT request data:', JSON.stringify(formData, null, 2));
+      console.log('🔍 DEBUG - priceBS value being sent:', formData.priceBS);
+
+      const response = await api.put(`/api/raffles/${raffleId}`, formData);
+
+      console.log('✅ DirectEditRafflePage - Update successful');
+      console.log('✅ Response:', response.data);
       
-      if (!adminKey) {
-        console.error('❌ No admin key found in localStorage');
-        setError('Error de autenticación: No se encontró la clave de administrador');
-        return;
-      }
-      
-      console.log('🔑 Admin key present, attempting request...');
-      
-      // Try different authentication header formats
-      try {
-        // Log the exact data being sent to server
-        console.log('🔍 DEBUG - PUT request URL:', `${apiUrl}/raffles/${raffleId}`);
-        console.log('🔍 DEBUG - PUT request data:', JSON.stringify(formData, null, 2));
-        console.log('🔍 DEBUG - priceBS value being sent:', formData.priceBS);
-        
-        // Send the request
-        const response = await axios.put(
-          `${apiUrl}/raffles/${raffleId}`,
-          formData,
-          {
-            headers: {
-              'x-admin-key': adminKey
-            }
-          }
-        );
-        
-        console.log('🔍 DEBUG - PUT response:', response.data);
-        
-        console.log('✅ DirectEditRafflePage - Update successful');
-        alert('Rifa actualizada con éxito');
-        navigate('/admin');
-      } catch (headerError) {
-        console.error('First auth header failed, trying alternative:', headerError);
-        
-        // Try alternative header format
-        await axios.put(
-          `${apiUrl}/raffles/${raffleId}`,
-          formData,
-          {
-            headers: {
-              'X-Admin-Key': adminKey,  // Capitalized header
-              'Authorization': `Bearer ${adminKey}`  // Try bearer format too
-            }
-          }
-        );
-        
-        console.log('✅ DirectEditRafflePage - Update successful with alternative auth');
-        alert('Rifa actualizada con éxito');
-        navigate('/admin');
-      }
+      alert('Rifa actualizada con éxito');
+      navigate('/admin');
     } catch (err) {
       console.error('❌ DirectEditRafflePage - Error updating raffle:', err);
       
@@ -376,11 +283,14 @@ const DirectEditRafflePage = () => {
 
 
   const handleChange = (e) => {
-    const { name, type, value, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    const { name, value, type } = e.target;
+    
+    // Handle different input types appropriately
+    if (type === 'number') {
+      setFormData(prev => ({ ...prev, [name]: value === '' ? '' : Number(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFileChange = (e) => {
@@ -406,24 +316,24 @@ const DirectEditRafflePage = () => {
     e.preventDefault();
     
     console.log('🔍 DEBUG - Current formData:', formData);
-    console.log('🔍 DEBUG - Current ticketPriceBS value:', formData.ticketPriceBS);
     
+    // Create object with field names that match the backend expectations
     const raffleData = {
-      title: formData.title,
-      maxTickets: formData.maxTickets,
-      ticketPrice: formData.ticketPriceUSD, // Main price in USD
-      priceBS: Number(formData.ticketPriceBS), // Convert to number and send as priceBS
-      ticketPriceBS: Number(formData.ticketPriceBS), // Try both field names
-      status: formData.status === true || formData.status === 'active' ? 'active' : 'inactive',
-      imageUrl: formData.imagePreview || initialData.imageUrl
-      // Include other fields from initialData that we aren't showing in this simplified form
+      name: formData.name,
+      description: formData.description || initialData?.description || '',
+      maxTickets: Number(formData.maxTickets),
+      price: Number(formData.price), // Main price in USD
+      priceBS: Number(formData.priceBS), // Price in Bs
+      drawDate: formData.drawDate || initialData?.drawDate,
+      status: formData.status,
+      image: formData.imagePreview || initialData?.image
+      // Other fields will be preserved from the original raffle data
     };
     
     console.log('🔍 DEBUG - Sending raffleData:', raffleData);
     
-    // Combine with other existing data from the initialData
-    const updatedRaffle = { ...initialData, ...raffleData };
-    handleSubmit(updatedRaffle);
+    // Send only the fields we've modified
+    handleSubmit(raffleData);
   };
 
   return (
@@ -456,10 +366,12 @@ const DirectEditRafflePage = () => {
             <h2 className="text-xl font-bold mb-4">Rifas Activas</h2>
             {initialData && (
               <div className="border border-blue-800 p-3 rounded-lg bg-[#0f172a] mb-2">
-                <div className="font-bold">{initialData.title}</div>
-                <div className="text-sm text-gray-300">Precio: $ {initialData.ticketPrice} / Bs. {initialData.ticketPriceBS || '0'}</div>
+                <div className="font-bold">{initialData.name}</div>
+                <div className="text-sm text-gray-300">Precio: $ {initialData.price} / Bs. {initialData.priceBS || '0'}</div>
                 <div className="flex justify-end mt-2">
-                  <span className="px-2 py-1 text-xs rounded bg-green-700 text-white">Activa</span>
+                  <span className={`px-2 py-1 text-xs rounded ${initialData.status === 'active' ? 'bg-green-700' : initialData.status === 'completed' ? 'bg-red-700' : 'bg-gray-600'} text-white`}>
+                    {initialData.status === 'active' ? 'Activa' : initialData.status === 'completed' ? 'Completada' : 'Borrador'}
+                  </span>
                 </div>
               </div>
             )}
@@ -532,16 +444,29 @@ const DirectEditRafflePage = () => {
                   </div>
                 </div>
                 
-                {/* Title */}
+                {/* Title (name in backend) */}
                 <div>
-                  <label htmlFor="title" className="block font-bold mb-1">Título de la Rifa</label>
+                  <label htmlFor="name" className="block font-bold mb-1">Título de la Rifa</label>
                   <input
                     type="text"
-                    id="title"
-                    name="title"
-                    value={formData.title}
+                    id="name"
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
                     className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                
+                {/* Description */}
+                <div>
+                  <label htmlFor="description" className="block font-bold mb-1">Descripción</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description || ''}
+                    onChange={handleChange}
+                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    rows="3"
                   />
                 </div>
                 
@@ -559,14 +484,27 @@ const DirectEditRafflePage = () => {
                   />
                 </div>
                 
+                {/* Draw Date */}
+                <div>
+                  <label htmlFor="drawDate" className="block font-bold mb-1">Fecha del Sorteo</label>
+                  <input
+                    type="date"
+                    id="drawDate"
+                    name="drawDate"
+                    value={formData.drawDate}
+                    onChange={handleChange}
+                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+                
                 {/* USD Price */}
                 <div>
-                  <label htmlFor="ticketPriceUSD" className="block font-bold mb-1">Precio del Ticket en USD ($)</label>
+                  <label htmlFor="price" className="block font-bold mb-1">Precio del Ticket en USD ($)</label>
                   <input
                     type="number"
-                    id="ticketPriceUSD"
-                    name="ticketPriceUSD"
-                    value={formData.ticketPriceUSD}
+                    id="price"
+                    name="price"
+                    value={formData.price}
                     onChange={handleChange}
                     min="0"
                     step="0.01"
@@ -576,46 +514,50 @@ const DirectEditRafflePage = () => {
                 
                 {/* Bs Price */}
                 <div>
-                  <label htmlFor="ticketPriceBS" className="block font-bold mb-1">Precio del Ticket en Bolivares (Bs)</label>
+                  <label htmlFor="priceBS" className="block font-bold mb-1">Precio del Ticket en Bolivares (Bs)</label>
                   <input
                     type="number"
-                    id="ticketPriceBS"
-                    name="ticketPriceBS"
-                    value={formData.ticketPriceBS}
+                    id="priceBS"
+                    name="priceBS"
+                    value={formData.priceBS}
                     onChange={handleChange}
                     min="0"
                     className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
                 
-                {/* Status checkbox */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
+                {/* Status dropdown */}
+                <div>
+                  <label htmlFor="status" className="block font-bold mb-1">Estado de la Rifa</label>
+                  <select
                     id="status"
                     name="status"
-                    checked={formData.status === 'active'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.checked ? 'active' : 'inactive' }))}
-                    className="h-4 w-4 mr-2"
-                  />
-                  <label htmlFor="status" className="font-bold">Activa</label>
+                    value={formData.status || 'draft'}
+                    onChange={handleChange}
+                    className="w-full p-2 bg-[#1e293b] border border-blue-800 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="draft">Borrador</option>
+                    <option value="active">Activa</option>
+                    <option value="completed">Completada</option>
+                  </select>
                 </div>
                 
                 {/* Buttons */}
-                <div className="flex space-x-3 mt-6">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 py-2 px-4 bg-green-700 hover:bg-green-600 rounded-md font-medium focus:outline-none transition-all duration-200"
-                  >
-                    {loading ? 'Guardando...' : 'Guardar Cambios'}
-                  </button>
+                <div className="flex justify-between">
                   <button
                     type="button"
-                    onClick={handleCancel}
-                    className="py-2 px-4 bg-gray-800 hover:bg-gray-700 rounded-md font-medium focus:outline-none transition-all duration-200"
+                    onClick={() => navigate('/admin')}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md"
+                    disabled={loading}
                   >
                     Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md"
+                    disabled={loading}
+                  >
+                    {loading ? 'Guardando...' : 'Guardar Cambios'}
                   </button>
                 </div>
               </form>
