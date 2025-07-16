@@ -33,13 +33,13 @@ const RaffleStatusManager = ({ raffles, loading, error, onUpdate, adminToken }) 
   const handlePromote = (id) => handleRaffleAction(async () => {
     const activeRaffle = raffles.find(r => r.status === 'active');
     if (activeRaffle) {
-      await api.put(`/raffles/${activeRaffle._id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      await api.put(`/api/raffles/${activeRaffle._id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } });
     }
-    await api.put(`/raffles/${id}/status`, { status: 'active' }, { headers: { Authorization: `Bearer ${adminToken}` } });
+    await api.put(`/api/raffles/${id}/status`, { status: 'active' }, { headers: { Authorization: `Bearer ${adminToken}` } });
   });
 
   const handleDemote = (id) => handleRaffleAction(() => 
-    api.put(`/raffles/${id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } })
+    api.put(`/api/raffles/${id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } })
   );
 
   const handleEdit = (id) => {
@@ -48,7 +48,7 @@ const RaffleStatusManager = ({ raffles, loading, error, onUpdate, adminToken }) 
 
   const handleDelete = (id) => handleRaffleAction(() => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta rifa? Esta acción no se puede deshacer.')) {
-      return api.delete(`/raffles/${id}`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      return api.delete(`/api/raffles/${id}`, { headers: { Authorization: `Bearer ${adminToken}` } });
     }
     return Promise.resolve();
   });

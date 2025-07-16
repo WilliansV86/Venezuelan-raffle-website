@@ -4,7 +4,7 @@ const raffleService = {
   // Get all active raffles
   getActiveRaffles: async () => {
     try {
-      const response = await api.get('/raffles');
+      const response = await api.get('/api/raffles');
       return response.data;
     } catch (error) {
       console.error('Error fetching active raffles:', error);
@@ -15,7 +15,7 @@ const raffleService = {
   // Get past raffles
   getPastRaffles: async () => {
     try {
-      const response = await api.get('/raffles/past');
+      const response = await api.get('/api/raffles/past');
       return response.data;
     } catch (error) {
       console.error('Error fetching past raffles:', error);
@@ -26,7 +26,7 @@ const raffleService = {
   // Get a single raffle by ID
   getRaffleById: async (id) => {
     try {
-      const response = await api.get(`/raffles/${id}`);
+      const response = await api.get(`/api/raffles/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching raffle ${id}:`, error);
@@ -37,7 +37,7 @@ const raffleService = {
   // Create a new raffle
   createRaffle: async (raffleData) => {
     try {
-      const response = await api.post('/raffles', raffleData, {
+      const response = await api.post('/api/raffles', raffleData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -52,7 +52,7 @@ const raffleService = {
   // Update a raffle
   updateRaffle: async (id, raffleData) => {
     try {
-      const response = await api.put(`/raffles/${id}`, raffleData, {
+      const response = await api.put(`/api/raffles/${id}`, raffleData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -67,7 +67,7 @@ const raffleService = {
   // Delete a raffle
   deleteRaffle: async (id) => {
     try {
-      const response = await api.delete(`/raffles/${id}`);
+      const response = await api.delete(`/api/raffles/${id}`);
       return response.data;
     } catch (error) {
       console.error(`Error deleting raffle ${id}:`, error);
@@ -78,7 +78,7 @@ const raffleService = {
   // Get statistics for a raffle
   getRaffleStats: async (raffleId) => {
     try {
-      const response = await api.get(`/tickets/stats/${raffleId}`);
+      const response = await api.get(`/api/tickets/stats/${raffleId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching stats for raffle ${raffleId}:`, error);

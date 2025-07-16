@@ -33,15 +33,19 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
     try {
       // Get token from header
       token = req.headers.authorization.split(' ')[1];
+      console.log('Admin token received:', token);
 
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Decoded token ID:', decoded.id);
 
       // Check if the user is the specific admin user
       if (decoded.id === 'admin_user') {
+        console.log('Admin authentication successful');
         req.user = { id: decoded.id }; // Attach user to the request
         next();
       } else {
+        console.error('Admin authentication failed: Invalid ID', decoded.id);
         res.status(403).json({ message: 'Not authorized as an admin' });
       }
     } catch (error) {
@@ -49,6 +53,7 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
       res.status(401).json({ message: 'Not authorized, token failed or invalid' });
     }
   } else {
+    console.error('Admin authorization failed: No token provided');
     res.status(401).json({ message: 'Not authorized, no token' });
   }
 });

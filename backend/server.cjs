@@ -9,22 +9,32 @@ process.on('uncaughtException', (err, origin) => {
   process.exit(1); // Exit with failure code
 });
 
-const express = require('express');
 const dotenv = require('dotenv');
+const path = require('path');
+
+// Load environment variables from .env file FIRST.
+// This is critical. It must happen before any other file is imported.
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+const express = require('express');
 const cors = require('cors');
 const connectDB = require('./src/config/db.js');
 const healthCheckRoutes = require('./src/routes/healthCheck.js');
 const raffleRoutes = require('./src/routes/raffleRoutes.js');
 const adminRoutes = require('./src/routes/adminRoutes.js');
 
-
-const path = require('path');
-dotenv.config({ path: path.resolve(__dirname, '.env') });
-
 connectDB().then(() => {
     console.log('Database connection successful, starting web server...');
     const app = express();
-    app.use(cors());
+    
+    // Configure CORS to explicitly allow requests from the frontend
+    app.use(cors({
+      origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true
+    }));
+    
     app.use(express.json());
     const PORT = 5100;
 

@@ -7,9 +7,16 @@ const connectDB = async () => {
   }
 
   try {
+    console.log('--------------------------------------------------');
+    console.log('ATTEMPTING TO CONNECT TO MONGO DB...');
+    console.log(`Using MONGO_URI: ${process.env.MONGO_URI ? 'FOUND' : 'NOT FOUND'}`);
+    console.log('--------------------------------------------------');
+
     const conn = await mongoose.connect(process.env.MONGO_URI);
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log('--------------------------------------------------');
+    console.log(`SUCCESS! MongoDB Connected: ${conn.connection.host}`);
+    console.log('--------------------------------------------------');
   } catch (error) {
     console.error('Error connecting to MongoDB. Full error object:');
     console.error(error);

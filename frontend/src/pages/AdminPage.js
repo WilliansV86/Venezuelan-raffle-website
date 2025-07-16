@@ -51,7 +51,7 @@ const AdminPage = () => {
           Authorization: `Bearer ${adminInfo.token}`,
         },
       };
-      const { data } = await api.get('/admin/raffles', config);
+      const { data } = await api.get('/api/admin/raffles', config);
       setRaffles(data);
     } catch (err) {
       const message = err.response?.data?.message || 'Error al cargar las rifas.';
@@ -71,7 +71,7 @@ const AdminPage = () => {
           Authorization: `Bearer ${adminInfo.token}`,
         },
       };
-      const { data } = await api.get('/admin/transactions', config);
+      const { data } = await api.get('/api/admin/transactions', config);
       setTransactions(data);
     } catch (err) {
       const message = err.response?.data?.message || 'Error al cargar las transacciones.';
@@ -104,7 +104,7 @@ const AdminPage = () => {
   const handleTransactionStatusUpdate = async (transactionId, newStatus) => {
     try {
       const config = { headers: { Authorization: `Bearer ${adminInfo.token}` } };
-      await api.put(`/admin/transactions/${transactionId}/status`, { status: newStatus }, config);
+      await api.put(`/api/admin/transactions/${transactionId}/status`, { status: newStatus }, config);
       fetchTransactions(); // Refresh transactions list
       if (selectedTransaction && selectedTransaction._id === transactionId) {
         setSelectedTransaction(prev => ({ ...prev, status: newStatus }));

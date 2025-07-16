@@ -13,17 +13,27 @@ const generateToken = (id) => {
 // @route   POST /api/admin/login
 // @access  Public
 const authAdmin = asyncHandler(async (req, res) => {
+  console.log('Admin login attempt received');
+  console.log('Request body:', req.body);
+  
   const { adminKey } = req.body;
+  console.log('Admin key provided:', adminKey ? '(key provided)' : '(no key)');
+  console.log('Expected admin key:', process.env.ADMIN_KEY ? '(key exists in env)' : '(no key in env)');
 
   if (adminKey === process.env.ADMIN_KEY) {
+    console.log('Admin login successful');
+    const token = generateToken('admin_user');
+    console.log('Generated token for admin_user');
+    
     res.json({
       _id: 'admin_user',
       name: 'Admin',
       email: 'admin@example.com',
       isAdmin: true,
-      token: generateToken('admin_user'),
+      token: token,
     });
   } else {
+    console.log('Admin login failed: Invalid admin key');
     res.status(401).json({ success: false, message: 'Invalid admin key' });
   }
 });

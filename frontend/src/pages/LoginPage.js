@@ -14,18 +14,29 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    console.log('Login attempt initiated');
 
     try {
-            const { data } = await api.post('/admin/login', { adminKey: password });
+      // Make sure we're using the correct endpoint
+      const loginEndpoint = '/api/admin/login';
+      console.log('Sending login request to:', loginEndpoint);
+      const { data } = await api.post(loginEndpoint, { adminKey: password });
+      console.log('Login response received:', data ? 'Data received' : 'No data');
       
       if (data && data.token) {
+        console.log('Login successful, token received');
         // Use the login function from AuthContext to update the state
         login(data);
-                navigate('/admin', { replace: true });
+        console.log('Navigating to admin page');
+        navigate('/admin', { replace: true });
       } else {
+        console.error('Login failed: No token in response');
         setError('Login failed. Please check your credentials.');
       }
     } catch (err) {
+      console.error('Login error:', err);
+      console.error('Response status:', err.response?.status);
+      console.error('Response data:', err.response?.data);
       setError(err.response?.data?.message || 'An error occurred during login.');
     } finally {
       setLoading(false);

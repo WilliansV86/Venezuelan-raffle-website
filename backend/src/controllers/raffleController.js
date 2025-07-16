@@ -8,16 +8,20 @@ const Raffle = require('../models/Raffle.js');
 const getRaffles = asyncHandler(async (req, res) => {
   try {
     // Filter to only return active raffles for the public homepage
-    const raffles = await Raffle.find({ status: 'active' }).sort({ createdAt: -1 });
+    console.log('[getRaffles] Attempting to fetch raffles from database...');
     
-    // Log the results for debugging
-    console.log('Returning active raffles:', JSON.stringify(raffles, null, 2));
+    // Use lean() for better performance and ensure we're only getting active raffles
+    const raffles = await Raffle.find({ status: 'active' })
+      .sort({ createdAt: -1 })
+      .lean();
+      
+    console.log('[getRaffles] Database query completed.');
     console.log('Active raffles count:', raffles.length);
     
-    // Always return a consistent format
+    // Always return a consistent format, even if no raffles are found
     return res.json({
       success: true,
-      data: raffles
+      data: raffles || [] // Ensure we always return an array
     });
   } catch (error) {
     console.error('Error fetching active raffles:', error);
@@ -140,31 +144,42 @@ const updateRaffle = asyncHandler(async (req, res) => {
 // @route   PUT /api/raffles/:id/status
 // @access  Private/Admin
 const updateRaffleStatus = asyncHandler(async (req, res) => {
+  console.log('updateRaffleStatus called with params:', req.params);
+  console.log('updateRaffleStatus request body:', req.body);
+  console.log('updateRaffleStatus auth header:', req.headers.authorization);
+  
   try {
     const { status } = req.body;
-    
+    console.log('Status from request:', status);
+      
     if (!status || !['draft', 'active', 'completed'].includes(status)) {
-      return res.status(400).json({
+      console.log('Invalid status:', status);
+      res.status(400).json({
         message: 'Estado inválido. Debe ser: draft, active, o completed.'
       });
+      return;
     }
     
-    const raffle = await Raffle.findById(req.params.id);
-    
-    if (!raffle) {
-      return res.status(404).json({
+    console.log('Finding raffle with ID:', req.params.id);
+    const updatedRaffle = await Raffle.findByIdAndUpdate(
+      req.params.id,
+      { status: status }, // Only update the status field
+      { new: true, runValidators: false } // IMPORTANT: Do not run validators on other fields
+    );
+    console.log('Result from findByIdAndUpdate:', updatedRaffle);
+
+    if (!updatedRaffle) {
+      console.log('Raffle not found with ID:', req.params.id);
+      res.status(404).json({
         message: 'Rifa no encontrada'
       });
+      return;
     }
-    
-    // Update the status
-    raffle.status = status;
-    
-    const updatedRaffle = await raffle.save();
-    
+
+    console.log('Successfully updated raffle status to:', status);
     res.json(updatedRaffle);
   } catch (error) {
-    console.error('Error updating raffle status:', error);
+    console.error('Error in updateRaffleStatus:', error);
     res.status(500).json({
       message: 'Error al actualizar el estado de la rifa',
       error: error.message
@@ -177,20 +192,26 @@ const updateRaffleStatus = asyncHandler(async (req, res) => {
 // @access  Public
 const getPastRaffles = asyncHandler(async (req, res) => {
   try {
+    console.log('[getPastRaffles] Request received');
     // Filter to only return completed raffles, sorted by most recent first
-    const pastRaffles = await Raffle.find({ status: 'completed' }).sort({ createdAt: -1 });
+    console.log('[getPastRaffles] Attempting to fetch completed raffles from database...');
     
-    // Log the results for debugging
-    console.log('Returning past raffles:', JSON.stringify(pastRaffles, null, 2));
+    // Use lean() for better performance
+    const pastRaffles = await Raffle.find({ status: 'completed' })
+      .sort({ createdAt: -1 })
+      .lean();
+      
+    console.log('[getPastRaffles] Database query completed.');
     console.log('Past raffles count:', pastRaffles.length);
     
-    // Always return a consistent format
+    // Always return a consistent format, even if no raffles are found
+    console.log('[getPastRaffles] Sending response with past raffles');
     return res.json({
       success: true,
-      data: pastRaffles
+      data: pastRaffles || [] // Ensure we always return an array
     });
   } catch (error) {
-    console.error('Error fetching past raffles:', error);
+    console.error('[getPastRaffles] Error fetching past raffles:', error);
     return res.status(500).json({
       success: false,
       message: 'Error al cargar los sorteos completados',
