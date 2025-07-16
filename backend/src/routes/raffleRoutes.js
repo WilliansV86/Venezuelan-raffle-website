@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles } = require('../controllers/raffleController.js');
+const { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles, deleteRaffle } = require('../controllers/raffleController.js');
 const { protectAdmin } = require('../middleware/authMiddleware.js');
 const { upload } = require('../middleware/uploadMiddleware.js');
 
@@ -16,7 +16,8 @@ router.get('/past', getPastRaffles);
 // Parametric routes - handle these after the fixed routes
 router.route('/:id')
   .get(getRaffleById)
-  .put(protectAdmin, upload.single('image'), updateRaffle);
+  .put(protectAdmin, upload.single('image'), updateRaffle)
+  .delete(protectAdmin, deleteRaffle);
 
 // Update raffle status
 router.route('/:id/status')

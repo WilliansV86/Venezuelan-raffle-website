@@ -7,9 +7,9 @@ const RaffleListTable = ({ raffles, onPromote, onDemote, onEdit, onDelete, isSub
     const baseClasses = "px-2 py-1 text-xs font-semibold rounded-full";
     switch (status) {
       case 'active':
-        return <span className={`${baseClasses} bg-blue-500/20 text-blue-300`}>Activo</span>;
+        return <span className={`${baseClasses} bg-green-500/20 text-green-300`}>Activo</span>;
       case 'completed':
-        return <span className={`${baseClasses} bg-green-500/20 text-green-300`}>Completado</span>;
+        return <span className={`${baseClasses} bg-red-500/20 text-red-300`}>Completado</span>;
       case 'draft':
         return <span className={`${baseClasses} bg-gray-500/20 text-gray-300`}>Borrador</span>;
       default:

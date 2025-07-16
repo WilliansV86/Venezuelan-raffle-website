@@ -3,8 +3,8 @@ import axios from 'axios';
 // Create an axios instance with the base URL from environment variables
 // This allows us to use different URLs for development and production
 const api = axios.create({
-  // Directly connect to the backend server
-  baseURL: 'http://localhost:5100', 
+  // Try with IP address instead of localhost
+  baseURL: 'http://127.0.0.1:5100', 
   timeout: 60000, // 60-second timeout for cold starts
   timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend esté funcionando.'
 });

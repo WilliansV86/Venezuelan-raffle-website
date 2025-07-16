@@ -220,4 +220,38 @@ const getPastRaffles = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles };
+// @desc    Delete a raffle
+// @route   DELETE /api/raffles/:id
+// @access  Private/Admin
+const deleteRaffle = asyncHandler(async (req, res) => {
+  console.log('[deleteRaffle] Attempting to delete raffle with ID:', req.params.id);
+  
+  try {
+    const raffle = await Raffle.findById(req.params.id);
+    
+    if (!raffle) {
+      console.log('[deleteRaffle] Raffle not found with ID:', req.params.id);
+      return res.status(404).json({
+        success: false,
+        message: 'Rifa no encontrada'
+      });
+    }
+    
+    await Raffle.findByIdAndDelete(req.params.id);
+    console.log('[deleteRaffle] Successfully deleted raffle with ID:', req.params.id);
+    
+    return res.json({
+      success: true,
+      message: 'Rifa eliminada exitosamente'
+    });
+  } catch (error) {
+    console.error('[deleteRaffle] Error deleting raffle:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error al eliminar la rifa',
+      error: error.message
+    });
+  }
+});
+
+module.exports = { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles, deleteRaffle };

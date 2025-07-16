@@ -27,13 +27,14 @@ connectDB().then(() => {
     console.log('Database connection successful, starting web server...');
     const app = express();
     
-    // Configure CORS to explicitly allow requests from the frontend
-    app.use(cors({
-      origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true
-    }));
+    // Configure CORS to allow all requests temporarily to fix connection issues
+    app.use(cors());
+    
+    // Log all incoming requests to help diagnose connection issues
+    app.use((req, res, next) => {
+      console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+      next();
+    });
     
     app.use(express.json());
     const PORT = 5100;
@@ -48,9 +49,22 @@ connectDB().then(() => {
 
 
 
-    app.listen(PORT, () => {
-      console.log(`Server with DB connection listening on port ${PORT}`);
-    });
+    try {
+      console.log('Attempting to start server on port', PORT);
+      const server = app.listen(PORT, () => {
+        console.log(`Server with DB connection listening on port ${PORT}`);
+        console.log('Server started successfully!');
+      });
+      
+      server.on('error', (error) => {
+        console.error('Server failed to start:', error.message);
+        if (error.code === 'EADDRINUSE') {
+          console.error(`Port ${PORT} is already in use. Please close any other applications using this port.`);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to start server:', error);
+    }
 
 }).catch(err => {
     console.error('Failed to connect to the database. Server will not start.', err);
