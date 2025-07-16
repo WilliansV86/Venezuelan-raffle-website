@@ -1,6 +1,7 @@
 // Basic admin key handling (for demonstration purposes)
 
-const ADMIN_KEY_STORAGE = 'admin_key';
+// Use 'adminInfo' consistently across the application for admin authentication
+const ADMIN_KEY_STORAGE = 'adminInfo';
 
 export const setAdminKey = (key) => {
   if (key) {
