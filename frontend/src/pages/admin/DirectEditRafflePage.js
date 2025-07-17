@@ -457,15 +457,9 @@ const DirectEditRafflePage = () => {
       formDataToSend.append('drawDate', formData.drawDate);
       formDataToSend.append('status', formData.status);
       
-      // Add image if a new one was selected
-      if (formData.imageFile) {
-        formDataToSend.append('image', formData.imageFile);
-        console.log('🔍 DEBUG - Sending image file:', formData.imageFile.name);
-      } else if (formData.imagePreview && formData.imagePreview.startsWith('data:')) {
-        // If there's a data URL but no file, it's a previously uploaded image preview
-        console.log('🔍 DEBUG - No new image selected, image preview exists');
-      } else if (initialData && (initialData.image || initialData.imageUrl)) {
-        // If no new image and no preview, but we have the original image path, pass it along
+      // Always keep the existing image when editing
+      if (initialData && (initialData.image || initialData.imageUrl)) {
+        // Pass along the original image path
         formDataToSend.append('image', initialData.image || initialData.imageUrl);
         console.log('🔍 DEBUG - Using existing image path:', initialData.image || initialData.imageUrl);
       } else {
@@ -601,34 +595,7 @@ const DirectEditRafflePage = () => {
                   </div>
                 </div>
                 
-                {/* Image upload */}
-                <div className="mb-4">
-                  <label className="block font-bold mb-2">Imagen de la Rifa</label>
-                  <div className="flex items-center space-x-2">
-                    {formData.imagePreview && (
-                      <img 
-                        src={formData.imagePreview} 
-                        alt="Preview" 
-                        className="w-12 h-12 object-cover rounded-md" 
-                      />
-                    )}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept="image/*"
-                      className="hidden"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={handleTriggerFileInput}
-                      className="px-3 py-2 bg-blue-800 hover:bg-blue-700 rounded-md text-sm flex items-center"
-                    >
-                      <span>Choose File</span>
-                    </button>
-                    <span className="text-sm">{formData.imageFile ? formData.imageFile.name : 'No file chosen'}</span>
-                  </div>
-                </div>
+                {/* Image section completely removed */}
                 
                 {/* Name */}
                 <div>
