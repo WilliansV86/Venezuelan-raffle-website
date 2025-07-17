@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaArrowUp, FaArrowDown, FaEdit, FaTrash, FaCheckCircle, FaPlay, FaArchive } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheckCircle, FaPlay, FaArchive } from 'react-icons/fa';
 
 const RaffleListTable = ({ raffles, onPromote, onDemote, onSetToDraft, onEdit, onDelete, isSubmitting }) => {
 

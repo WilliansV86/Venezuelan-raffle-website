@@ -193,6 +193,7 @@ const DirectEditRafflePage = () => {
   // Add useEffect to call loadRaffleData on component mount
   useEffect(() => {
     loadRaffleData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raffleId]);
 
   useEffect(() => {
@@ -295,10 +296,11 @@ const DirectEditRafflePage = () => {
     }
   };
 
-  const handleCancel = () => {
-    console.log('Cancelando edición');
-    navigate('/admin'); // Navigate back to admin page
-  };
+  // Commented out as it's not used currently but might be needed later
+  // const handleCancel = () => {
+  //   console.log('Cancelando edición');
+  //   navigate('/admin'); // Navigate back to admin page
+  // };
   
   // Function to safely navigate to admin panel's raffle management section
   const navigateToAdminPanel = () => {
@@ -349,24 +351,25 @@ const DirectEditRafflePage = () => {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({
-          ...prev,
-          imageFile: file,
-          imagePreview: e.target.result
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  // Image handling functions removed as per requirement to disable image upload in edit page
+  // const handleFileChange = (e) => {
+  //   const file = e.target.files[0];
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //       setFormData(prev => ({
+  //         ...prev,
+  //         imageFile: file,
+  //         imagePreview: e.target.result
+  //       }));
+  //     };
+  //     reader.readAsDataURL(file);
+  //   }
+  // };
 
-  const handleTriggerFileInput = () => {
-    fileInputRef.current.click();
-  };
+  // const handleTriggerFileInput = () => {
+  //   fileInputRef.current.click();
+  // };
 
   const validateForm = () => {
     const errors = {};
