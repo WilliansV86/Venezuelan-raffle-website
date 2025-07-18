@@ -1,0 +1,400 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import axios from 'axios';
+import { FaWhatsapp } from 'react-icons/fa';
+
+const CustomPurchasePage = () => {
+  const { raffleId } = useParams();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [raffle, setRaffle] = useState(null);
+  const [quantity, setQuantity] = useState(2);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [selectedPayment, setSelectedPayment] = useState('pago-movil');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    identificationNumber: '',
+    phone: '',
+    paymentReference: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentProof, setPaymentProof] = useState(null);
+  const [ticketAvailability, setTicketAvailability] = useState({
+    available: true,
+    message: ''
+  });
+
+  // Load raffle data
+  useEffect(() => {
+    const fetchRaffle = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`http://localhost:5100/api/raffles/${raffleId}`);
+        
+        // Handle both response formats
+        const raffleData = response.data.data || response.data;
+        setRaffle(raffleData);
+        
+        // Set initial quantity and calculate price
+        const minTickets = raffleData.minTickets || 1;
+        setQuantity(minTickets);
+        setTotalPrice(calculatePrice(raffleData.ticketPrice || 0, minTickets));
+        
+        // Check ticket availability
+        try {
+          const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffleId}/stats`);
+          const stats = statsResponse.data.data || statsResponse.data;
+          if (stats.remainingTickets <= 0) {
+            setTicketAvailability({
+              available: false,
+              message: 'No hay tickets disponibles para este sorteo'
+            });
+          }
+        } catch (statsError) {
+          console.error('Error checking ticket availability:', statsError);
+          setTicketAvailability({
+            available: false,
+            message: `Error checking ticket availability: Request failed with status code ${statsError.response?.status || 'unknown'}`
+          });
+        }
+      } catch (err) {
+        setError('Error al cargar los detalles del sorteo');
+        console.error('Error fetching raffle:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRaffle();
+  }, [raffleId]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+  
+  const handleFileChange = (e) => {
+    setPaymentProof(e.target.files[0]);
+  };
+  
+  const increaseQuantity = () => {
+    if (raffle && quantity < (raffle.maxTicketsPerPurchase || 10)) {
+      const newQuantity = quantity + 1;
+      setQuantity(newQuantity);
+      setTotalPrice(calculatePrice(raffle.ticketPrice || 0, newQuantity));
+    }
+  };
+  
+  const decreaseQuantity = () => {
+    if (raffle && quantity > (raffle.minTickets || 1)) {
+      const newQuantity = quantity - 1;
+      setQuantity(newQuantity);
+      setTotalPrice(calculatePrice(raffle.ticketPrice || 0, newQuantity));
+    }
+  };
+  
+  const calculatePrice = (price, qty) => {
+    return price * qty;
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setIsSubmitting(true);
+      const submitData = new FormData();
+      submitData.append('firstName', formData.firstName);
+      submitData.append('lastName', formData.lastName);
+      submitData.append('email', formData.email);
+      submitData.append('identificationNumber', formData.identificationNumber);
+      submitData.append('whatsappNumber', formData.phone);
+      submitData.append('paymentReference', formData.paymentReference);
+      submitData.append('quantity', quantity);
+      submitData.append('paymentMethod', selectedPayment);
+      submitData.append('raffleId', raffleId);
+      
+      if (paymentProof) {
+        submitData.append('paymentProof', paymentProof);
+      }
+      
+      // Log what we're sending
+      console.log('Sending purchase with data:');
+      for (let pair of submitData.entries()) {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+      
+      const response = await axios.post('http://localhost:5100/api/tickets/purchase', submitData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      console.log('Server response:', response.data);
+      
+      if (response.data.success) {
+        alert(`¡Compra exitosa! Tus tickets: ${response.data.tickets.join(', ')}`);
+        // Redirect or show success message
+      } else {
+        alert(`Error: ${response.data.message || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert(`Error: ${error.response?.data?.message || error.message || 'Error desconocido'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Cargando...</div>;
+  }
+  
+  if (error) {
+    return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center text-red-500">{error}</div>;
+  }
+  
+  if (!raffle) {
+    return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Sorteo no encontrado</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      <header className="bg-gray-800 border-b border-gray-700">
+        <div className="container mx-auto px-4 py-4 flex justify-start items-center">
+          <Link to="/" className="text-cyan-400 hover:text-white transition">
+            ← Volver a la lista de sorteos
+          </Link>
+        </div>
+      </header>
+      
+      <main className="container mx-auto px-4 py-6">
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {/* Left column */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <div className="mb-6">
+              <h3 className="text-base mb-2 text-cyan-400">Quedan 100%</h3>
+              
+              <div className="bg-gray-700 rounded-full h-1 mb-2">
+                <div 
+                  className="bg-cyan-500 h-1 rounded-full"
+                  style={{ width: '100%' }}
+                ></div>
+              </div>
+            </div>
+            
+            <h1 className="text-3xl font-bold text-center text-white mb-6">Selecciona tus Tickets</h1>
+            
+            <div className="mb-6">
+              <div className="bg-blue-900/30 border border-blue-800 rounded-lg p-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+                  </svg>
+                  <span>Modo Desarrollo: Usando datos de prueba</span>
+                </div>
+              </div>
+              
+              <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 mb-4">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clipRule="evenodd" />
+                  </svg>
+                  <span>Error: Error checking ticket availability: Request failed with status code 404</span>
+                </div>
+              </div>
+            </div>
+            
+
+            
+            <div className="flex items-center justify-center space-x-4 mb-2">
+              <button 
+                onClick={decreaseQuantity} 
+                className="w-12 h-12 bg-red-600 rounded-md flex items-center justify-center text-2xl font-bold"
+              >
+                -
+              </button>
+              <div className="w-24 h-12 bg-gray-800 border border-gray-600 rounded-md flex items-center justify-center text-3xl font-bold">
+                10
+              </div>
+              <button 
+                onClick={increaseQuantity}
+                className="w-12 h-12 bg-green-600 rounded-md flex items-center justify-center text-2xl font-bold"
+              >
+                +
+              </button>
+            </div>
+            
+            <h3 className="text-2xl font-bold text-center mb-4">Métodos de Pago</h3>
+            <p className="text-sm text-center text-gray-400 mb-6">
+              <span>Cantidad mínima permitida: 10</span>
+            </p>
+            <div className="flex justify-center space-x-4 mb-6">
+              <div className="text-center">
+                <button 
+                  onClick={() => setSelectedPayment('pago-movil')}
+                  className={`w-16 h-16 rounded-full bg-white p-1 flex items-center justify-center mb-2 ${
+                    selectedPayment === 'pago-movil' ? 'ring-2 ring-yellow-500' : ''
+                  }`}
+                >
+                  <img src="/bbva-provincial.png" alt="BBVA Provincial" className="w-14 h-14 object-contain" onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.parentNode.innerHTML = "<div class='bg-blue-800 w-full h-full rounded-full flex items-center justify-center'><span class='text-white font-bold text-sm'>BBVA</span></div>";
+                  }} />
+                </button>
+                <span className="text-sm">Pago Móvil</span>
+              </div>
+              
+              <div className="text-center">
+                <button 
+                  onClick={() => setSelectedPayment('zelle')}
+                  className={`w-16 h-16 rounded-full bg-white p-1 flex items-center justify-center mb-2 ${
+                    selectedPayment === 'zelle' ? 'ring-2 ring-yellow-500' : ''
+                  }`}
+                >
+                  <img src="/zelle-logo.png" alt="Zelle" className="w-14 h-14 object-contain" onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.parentNode.innerHTML = "<div class='bg-purple-600 w-full h-full rounded-full flex items-center justify-center'><span class='text-white font-bold text-sm'>Zelle</span></div>";
+                  }} />
+                </button>
+                <span className="text-sm">Zelle</span>
+              </div>
+              
+              <div className="text-center">
+                <button 
+                  onClick={() => setSelectedPayment('binance')}
+                  className={`w-16 h-16 rounded-full bg-white p-1 flex items-center justify-center mb-2 ${
+                    selectedPayment === 'binance' ? 'ring-2 ring-yellow-500' : ''
+                  }`}
+                >
+                  <img src="/binance-logo.png" alt="Binance" className="w-14 h-14 object-contain" onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.parentNode.innerHTML = "<div class='bg-yellow-400 w-full h-full rounded-full flex items-center justify-center'><span class='text-black font-bold text-xs'>Binance</span></div>";
+                  }} />
+                </button>
+                <span className="text-sm">Binance</span>
+              </div>
+            </div>
+            
+            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 mb-4">
+              <p className="text-center font-mono">
+                Business@wvaaenterprise.com
+              </p>
+            </div>
+          </div>
+          
+          {/* Right column */}
+          <div>
+            <div className="bg-yellow-400 text-black font-bold text-center p-4 rounded-lg mb-6">
+              <p className="text-base">MONTO USD A TRANSFERIR</p>
+              <p className="text-3xl">20.00 USD</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  name="firstName"
+                  value="Willians"
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700/50 border-none rounded p-3 text-white"
+                  required
+                />
+              </div>
+              
+              <div>
+                <input
+                  type="text"
+                  name="lastName"
+                  value="Valderrama"
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700/50 border-none rounded p-3 text-white"
+                  required
+                />
+              </div>
+              
+              <div>
+                <input
+                  type="email"
+                  name="email"
+                  value="ing.williamvalderrama@hotmail.com"
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700/50 border-none rounded p-3 text-white"
+                  required
+                />
+              </div>
+              
+              <div>
+                <input
+                  type="text"
+                  name="identificationNumber"
+                  value="17767135"
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700/50 border-none rounded p-3 text-white"
+                  required
+                />
+              </div>
+              
+              <div>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700/50 border-none rounded p-3 text-white"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block mb-2">Referencia de Pago</label>
+                <input
+                  type="text"
+                  name="paymentReference"
+                  value={formData.paymentReference}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-700 border border-gray-600 rounded p-3"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block mb-2">Comprobante de Pago</label>
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  className="w-full bg-gray-700 border border-gray-600 rounded p-3"
+                  required
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                className="w-full bg-gradient-to-br from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white font-bold py-3 px-4 rounded mt-4"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Enviando...' : 'COMPRAR BOLETOS'}
+              </button>
+            </form>
+          </div>
+        </div>
+      </main>
+      
+      {/* WhatsApp floating button */}
+      <a 
+        href="https://wa.me/584241378533" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+      >
+        <FaWhatsapp size={24} />
+      </a>
+    </div>
+  );
+};
+
+export default CustomPurchasePage;

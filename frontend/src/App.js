@@ -12,6 +12,7 @@ import TestPurchasePage from './pages/TestPurchasePage';
 import FormDebugPage from './pages/FormDebugPage';
 import ParticipationPage from './pages/ParticipationPage';
 import TermsPage from './pages/TermsPage';
+import CustomPurchasePage from './pages/CustomPurchasePage';
 // Admin Page Components
 import AdminRafflesListPage from './pages/admin/AdminRafflesListPage';
 import CreateRafflePage from './pages/admin/CreateRafflePage';
@@ -43,7 +44,7 @@ function App() {
           <Route path="/test-purchase" element={<TestPurchasePage />} />
           <Route path="/form-debug" element={<FormDebugPage />} />
           <Route path="/terms" element={<TermsPage />} />
-          <Route path="/raffle/:raffleId/participate" element={<ParticipationPage />} />
+          <Route path="/raffle/:raffleId/participate" element={<CustomPurchasePage />} />
           <Route path="*" element={<NotFoundPage />} />
 
           {/* Admin Routes */}
