@@ -8,6 +8,11 @@ const CustomPurchasePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [raffle, setRaffle] = useState(null);
+  const [raffleStats, setRaffleStats] = useState({
+    soldTickets: 0,
+    totalTickets: 100,
+    remainingTickets: 100
+  });
   const [quantity, setQuantity] = useState(2); // Start with 2 tickets minimum
   const [totalPrice, setTotalPrice] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState('pago-movil');
@@ -76,6 +81,14 @@ const CustomPurchasePage = () => {
         try {
           const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffleId}/stats`);
           const stats = statsResponse.data.data || statsResponse.data;
+          
+          // Store the stats in state
+          setRaffleStats({
+            soldTickets: stats.soldTickets || 0,
+            totalTickets: stats.totalTickets || 100,
+            remainingTickets: stats.remainingTickets || 100
+          });
+          
           if (stats.remainingTickets <= 0) {
             setTicketAvailability({
               available: false,
@@ -297,13 +310,15 @@ const CustomPurchasePage = () => {
             
             <div className="mb-10">
               <h3 className="text-base mb-2 font-semibold flex justify-between">
-                <span className="text-cyan-300">Disponibles</span>
-                <span className="text-cyan-300">Vendidos</span>
+                <span className="text-cyan-300">Tickets Disponibles</span>
+                <span className="text-cyan-300">
+                  {`Quedan ${Math.round((raffleStats.remainingTickets / raffleStats.totalTickets) * 100)}%`}
+                </span>
               </h3>
               <div className="h-3 w-full bg-gray-800 rounded-full overflow-hidden shadow-inner border border-gray-700/50 p-0.5">
                 <div 
                   className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full relative" 
-                  style={{ width: '60%' }}
+                  style={{ width: `${Math.round((raffleStats.remainingTickets / raffleStats.totalTickets) * 100)}%` }}
                 >
                   <div className="absolute top-0 left-0 w-full h-1/2 bg-white/20 rounded-full"></div>
                 </div>

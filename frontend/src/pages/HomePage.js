@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import RaffleCard from '../components/raffle/RaffleCard';
-import { FaGift, FaHistory, FaSync } from 'react-icons/fa';
+import { FaGift, FaHistory, FaSync, FaWhatsapp } from 'react-icons/fa';
 import SocialLinks from '../components/common/SocialLinks';
 import Confetti from 'react-confetti';
 import raffleService from '../services/raffleService';
@@ -163,6 +163,21 @@ const HomePage = () => {
             <SocialLinks />
           </div>
         </main>
+        
+        {/* WhatsApp floating button */}
+        <a 
+          href="https://wa.me/584241378533" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-full shadow-xl hover:shadow-green-500/20 hover:from-green-500 hover:to-green-600 transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center z-50 border-2 border-green-400/20"
+          aria-label="Contactar por WhatsApp"
+        >
+          <FaWhatsapp size={28} />
+          <div className="absolute -top-1 -right-1 bg-gradient-to-br from-red-500 to-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border border-white/30 shadow-md">
+            1
+          </div>
+          <span className="absolute -bottom-10 right-0 bg-black/80 text-white text-xs rounded-md py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Contactar por WhatsApp</span>
+        </a>
       </div>
     </div>
   );
