@@ -42,26 +42,26 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
         <div className="p-6 text-white flex flex-col justify-center items-center">
           <h3 className="text-2xl font-bold text-center mb-4 truncate">{raffle.title}</h3>
           {isPast ? (
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <span className="bg-purple-800 text-white text-sm font-semibold px-4 py-1 rounded-full">Sorteo Finalizado</span>
-              <div className="flex justify-center mt-2">
+            <div className="flex flex-col items-center justify-center h-[104px]">
+              <span className="bg-purple-800 text-white text-sm font-semibold px-4 py-1 rounded-full mb-4">Sorteo Finalizado</span>
+              <div className="flex justify-center">
                 <Link to={`/raffle/${raffle._id}`}>
-                  <button className="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105">
+                  <button className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 text-lg">
                     Ver Detalles
                   </button>
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center space-y-4 w-full">
-              <div className="w-full bg-gray-700 rounded-full h-2.5">
+            <div className="flex flex-col items-center justify-center h-[104px] w-full">
+              <div className="w-full bg-gray-700 rounded-full h-2.5 mb-1">
                 <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${raffle.progress || 100}%` }}></div>
               </div>
-              <span className="text-sm">Quedan {100 - (raffle.progress || 0)}%</span>
-              <div className="flex justify-center mt-2">
+              <span className="text-sm mb-4">Quedan {100 - (raffle.progress || 0)}%</span>
+              <div className="flex justify-center">
                 <button 
                   onClick={handleParticipateClick}
-                  className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105"
+                  className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-3 px-8 rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 text-lg"
                 >
                   Participar
                 </button>

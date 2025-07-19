@@ -79,11 +79,11 @@ const VerifyTicketsPage = () => {
       <div className="bg-black/30 backdrop-blur-lg rounded-xl p-6 shadow-2xl shadow-purple-400/10 border border-purple-500/20 max-w-md mx-auto mb-10">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="cedula" className="block text-white mb-2">Número de Cédula</label>
+            <label htmlFor="cedula" className="block text-white mb-2">Número de Cédula o Pasaporte</label>
             <input
               id="cedula"
               type="text"
-              placeholder="Ej: V-12345678"
+              placeholder="Ej: 123456778"
               value={cedula}
               onChange={(e) => setCedula(e.target.value)}
               className={`w-full bg-gray-800 border ${cedulaError ? 'border-red-500' : 'border-gray-600'} rounded-lg py-2 px-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500`}

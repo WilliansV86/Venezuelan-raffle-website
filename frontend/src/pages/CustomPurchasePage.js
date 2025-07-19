@@ -47,11 +47,11 @@ const CustomPurchasePage = () => {
       if (selectedPayment === 'pago-movil') {
         // For Pago Móvil, always set to exactly 2 tickets
         setQuantity(2);
-        setTotalPrice(calculatePrice(raffle.ticketPrice || 0, 2));
+        setTotalPrice(calculatePrice(raffle, 2, 'pago-movil'));
       } else if (selectedPayment === 'zelle' || selectedPayment === 'binance') {
         // For Zelle and Binance, always set to exactly 10 tickets
         setQuantity(10);
-        setTotalPrice(calculatePrice(raffle.ticketPrice || 0, 10));
+        setTotalPrice(calculatePrice(raffle, 10, selectedPayment));
       }
     }
   }, [selectedPayment, raffle]);
@@ -70,7 +70,7 @@ const CustomPurchasePage = () => {
         // Set initial quantity and calculate price
         const minTickets = raffleData.minTickets || 1;
         setQuantity(minTickets);
-        setTotalPrice(calculatePrice(raffleData.ticketPrice || 0, minTickets));
+        setTotalPrice(calculatePrice(raffleData, minTickets, selectedPayment));
         
         // Check ticket availability
         try {
@@ -98,7 +98,17 @@ const CustomPurchasePage = () => {
     };
     
     fetchRaffle();
-  }, [raffleId]);
+    
+    // Set up polling to check for raffle updates every 30 seconds
+    const pollInterval = setInterval(() => {
+      if (!isSubmitting) { // Don't poll during form submission
+        fetchRaffle();
+      }
+    }, 30000); // Poll every 30 seconds
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(pollInterval);
+  }, [raffleId, isSubmitting]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -160,7 +170,7 @@ const CustomPurchasePage = () => {
     if (raffle && quantity < (raffle.maxTicketsPerPurchase || 10)) {
       const newQuantity = quantity + 1;
       setQuantity(newQuantity);
-      setTotalPrice(calculatePrice(raffle.ticketPrice || 0, newQuantity));
+      setTotalPrice(calculatePrice(raffle, newQuantity, selectedPayment));
     }
   };
   
@@ -178,11 +188,20 @@ const CustomPurchasePage = () => {
     if (quantity > minTickets) {
       const newQuantity = quantity - 1;
       setQuantity(newQuantity);
-      setTotalPrice(calculatePrice(raffle.ticketPrice || 0, newQuantity));
+      setTotalPrice(calculatePrice(raffle, newQuantity, selectedPayment));
     }
   };
   
-  const calculatePrice = (price, qty) => {
+  const calculatePrice = (raffle, qty, paymentMethod) => {
+    // Get the correct price based on payment method
+    let price = 0;
+    if (paymentMethod === 'pago-movil') {
+      // For Pago Móvil, use BS price
+      price = raffle.ticketPriceBS || raffle.ticketBS || raffle.priceBS || 0;
+    } else {
+      // For Zelle and Binance, use USD price
+      price = raffle.ticketPrice || raffle.price || 0;
+    }
     return price * qty;
   };
   
@@ -466,7 +485,7 @@ const CustomPurchasePage = () => {
             <div className="bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-bold text-center p-5 rounded-lg mb-6 shadow-lg">
               <p className="text-base uppercase tracking-wider font-medium opacity-80">Monto a pagar</p>
               {selectedPayment === 'pago-movil' ? (
-                <p className="text-5xl mt-2">{(totalPrice * 35).toFixed(2)} <span className="text-2xl">Bs</span></p>
+                <p className="text-5xl mt-2">{totalPrice.toFixed(2)} <span className="text-2xl">Bs</span></p>
               ) : (
                 <p className="text-5xl mt-2">${totalPrice.toFixed(2)} <span className="text-2xl">USD</span></p>
               )}
