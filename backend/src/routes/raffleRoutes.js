@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles, deleteRaffle } = require('../controllers/raffleController.js');
+const { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles, deleteRaffle, getRaffleStats } = require('../controllers/raffleController.js');
 const { protectAdmin } = require('../middleware/authMiddleware.js');
 const { upload } = require('../middleware/uploadMiddleware.js');
 
@@ -22,5 +22,9 @@ router.route('/:id')
 // Update raffle status
 router.route('/:id/status')
   .put(protectAdmin, updateRaffleStatus);
+
+// Get raffle stats
+router.route('/:id/stats')
+  .get(getRaffleStats);
 
 module.exports = router;

@@ -1,10 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import TermsModal from '../common/TermsModal';
+import { ModernProgressBar, PremiumProgressBar, ElegantProgressBar } from '../common/ProgressBarAlternatives';
+import axios from 'axios';
 
 const RaffleCard = ({ raffle, loading, isPast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [raffleStats, setRaffleStats] = useState({
+    soldTickets: 0,
+    totalTickets: 100,
+    remainingTickets: 100
+  });
+  const [progress, setProgress] = useState(raffle?.progress || 0);
   const navigate = useNavigate();
+
+  // Fetch raffle stats when component mounts and periodically refresh
+  useEffect(() => {
+    // Skip for past raffles or if no raffle data
+    if (isPast || !raffle || !raffle._id) return;
+    
+    const fetchRaffleStats = async () => {
+      try {
+        const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffle._id}/stats`);
+        const stats = statsResponse.data.data || statsResponse.data;
+        
+        // Update the stats in state to refresh the UI
+        setRaffleStats({
+          soldTickets: stats.soldTickets || 0,
+          totalTickets: stats.totalTickets || 100,
+          remainingTickets: stats.remainingTickets || 100
+        });
+        
+        // Calculate and update progress percentage
+        if (stats.totalTickets > 0) {
+          const newProgress = Math.round(((stats.totalTickets - stats.remainingTickets) / stats.totalTickets) * 100);
+          setProgress(newProgress);
+        }
+      } catch (error) {
+        console.error(`Error fetching stats for raffle ${raffle._id}:`, error);
+      }
+    };
+    
+    // Initial fetch
+    fetchRaffleStats();
+    
+    // Set up refresh interval every 15 seconds
+    const refreshInterval = setInterval(fetchRaffleStats, 15000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(refreshInterval);
+  }, [raffle, isPast]);
 
   if (loading) {
     return <div className="w-96"><div className="h-[600px] bg-gray-700 animate-pulse rounded-lg shadow-lg"></div></div>;
@@ -42,26 +87,39 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
         <div className="p-6 text-white flex flex-col justify-center items-center">
           <h3 className="text-2xl font-bold text-center mb-4 truncate">{raffle.title}</h3>
           {isPast ? (
-            <div className="flex flex-col items-center justify-center h-[104px]">
-              <span className="bg-purple-800 text-white text-sm font-semibold px-4 py-1 rounded-full mb-4">Sorteo Finalizado</span>
-              <div className="flex justify-center">
+            <div className="flex flex-col items-center h-[104px] w-full">
+              <div className="-mt-3 w-full px-2">
+                <div className="w-full max-w-md mb-2">
+                  <div className="bg-purple-800 text-white py-1 px-3 rounded-lg shadow-md w-full">
+                    <div className="flex justify-center items-center">
+                      <span className="font-semibold text-sm">Sorteo Finalizado</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-center mt-2">
                 <Link to={`/raffle/${raffle._id}`}>
-                  <button className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 text-lg">
+                  <button className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 text-lg shadow">
                     Ver Detalles
                   </button>
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-[104px] w-full">
-              <div className="w-full bg-gray-700 rounded-full h-2.5 mb-1">
-                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${raffle.progress || 100}%` }}></div>
+            <div className="flex flex-col items-center h-[104px] w-full">
+              {/* Premium card-style progress bar */}
+              <div className="-mt-3 w-full px-2">
+                <PremiumProgressBar progress={progress} />
+                {raffleStats.totalTickets > 0 && (
+                  <div className="text-xs text-center mt-1 text-cyan-300">
+                    Vendidos: {raffleStats.soldTickets} de {raffleStats.totalTickets} tickets
+                  </div>
+                )}
               </div>
-              <span className="text-sm mb-4">Quedan {100 - (raffle.progress || 0)}%</span>
-              <div className="flex justify-center">
+              <div className="flex justify-center mt-2">
                 <button 
                   onClick={handleParticipateClick}
-                  className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-3 px-8 rounded-lg hover:from-cyan-500 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 text-lg"
+                  className="bg-gradient-to-r from-cyan-400 to-blue-500 text-white font-bold py-3 px-12 rounded-lg hover:from-blue-400 hover:to-purple-500 transition-all duration-300 transform hover:scale-110 hover:shadow-xl hover:shadow-blue-300/50 text-lg shadow-md min-w-[160px]"
                 >
                   Participar
                 </button>

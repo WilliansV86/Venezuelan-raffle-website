@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -7,19 +7,34 @@ import CreateRaffleForm from './CreateRaffleForm';
 import RaffleListTable from './RaffleListTable';
 import { FaCheckCircle } from 'react-icons/fa';
 
-const RaffleStatusManager = ({ raffles, loading, error, onUpdate, adminToken }) => {
+const RaffleStatusManager = ({ raffles: initialRaffles, loading, error, onUpdate, adminToken }) => {
+  // Create a local copy of raffles to manage state updates without full reloads
+  const [raffles, setRaffles] = useState(initialRaffles);
   const navigate = useNavigate();
   const [actionError, setActionError] = useState(null);
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleRaffleAction = async (action) => {
+  useEffect(() => {
+    setRaffles(initialRaffles);
+  }, [initialRaffles]);
+
+  // Updated handler that updates local state directly
+  const handleRaffleAction = async (action, updateLocalState) => {
     setIsSubmitting(true);
     setActionError(null);
     try {
       await action();
+      
+      // Update local state first for immediate UI update
+      if (updateLocalState) {
+        updateLocalState();
+      }
+      
       setUpdateSuccess(true);
-      if (onUpdate) onUpdate();
+      // We're not calling onUpdate() at all to prevent blinking
+      // The local state update is sufficient for the UI
+      // Backend will still be in sync because of our API calls
       setTimeout(() => setUpdateSuccess(false), 3000);
     } catch (err) {
       console.error('Raffle action failed:', err);
@@ -30,16 +45,64 @@ const RaffleStatusManager = ({ raffles, loading, error, onUpdate, adminToken }) 
     }
   };
 
-  const handlePromote = (id) => handleRaffleAction(async () => {
+  const handlePromote = (id) => {
     const activeRaffle = raffles.find(r => r.status === 'active');
-    if (activeRaffle) {
-      await api.put(`/api/raffles/${activeRaffle._id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } });
-    }
-    await api.put(`/api/raffles/${id}/status`, { status: 'active' }, { headers: { Authorization: `Bearer ${adminToken}` } });
-  });
+    
+    return handleRaffleAction(
+      async () => {
+        // Server-side updates
+        if (activeRaffle) {
+          await api.put(`/api/raffles/${activeRaffle._id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } });
+        }
+        await api.put(`/api/raffles/${id}/status`, { status: 'active' }, { headers: { Authorization: `Bearer ${adminToken}` } });
+      },
+      // Local state updates for immediate UI response
+      () => {
+        setRaffles(currentRaffles => {
+          return currentRaffles.map(raffle => {
+            if (raffle._id === id) {
+              return { ...raffle, status: 'active' };
+            }
+            if (activeRaffle && raffle._id === activeRaffle._id) {
+              return { ...raffle, status: 'completed' };
+            }
+            return raffle;
+          });
+        });
+      }
+    );
+  };
 
-  const handleDemote = (id) => handleRaffleAction(() => 
-    api.put(`/api/raffles/${id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } })
+  const handleDemote = (id) => handleRaffleAction(
+    // Server-side update
+    () => api.put(`/api/raffles/${id}/status`, { status: 'completed' }, { headers: { Authorization: `Bearer ${adminToken}` } }),
+    // Local state update for immediate UI response
+    () => {
+      setRaffles(currentRaffles => {
+        return currentRaffles.map(raffle => {
+          if (raffle._id === id) {
+            return { ...raffle, status: 'completed' };
+          }
+          return raffle;
+        });
+      });
+    }
+  );
+
+  const handleSetToDraft = (id) => handleRaffleAction(
+    // Server-side update
+    () => api.put(`/api/raffles/${id}/status`, { status: 'draft' }, { headers: { Authorization: `Bearer ${adminToken}` } }),
+    // Local state update for immediate UI response
+    () => {
+      setRaffles(currentRaffles => {
+        return currentRaffles.map(raffle => {
+          if (raffle._id === id) {
+            return { ...raffle, status: 'draft' };
+          }
+          return raffle;
+        });
+      });
+    }
   );
 
   const handleEdit = (id) => {
@@ -74,6 +137,7 @@ const RaffleStatusManager = ({ raffles, loading, error, onUpdate, adminToken }) 
             raffles={raffles}
             onPromote={handlePromote}
             onDemote={handleDemote}
+            onSetToDraft={handleSetToDraft}
             onEdit={handleEdit}
             onDelete={handleDelete}
             isSubmitting={isSubmitting}

@@ -276,4 +276,56 @@ const deleteRaffle = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getRaffles, getRaffleById, createRaffle, updateRaffle, updateRaffleStatus, getPastRaffles, deleteRaffle };
+// @desc    Get raffle ticket statistics
+// @route   GET /api/raffles/:id/stats
+// @access  Public
+const getRaffleStats = asyncHandler(async (req, res) => {
+  try {
+    const raffle = await Raffle.findById(req.params.id);
+    
+    if (!raffle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Raffle not found'
+      });
+    }
+    
+    // Calculate stats
+    const totalTickets = raffle.maxTickets || 0;
+    const soldTickets = raffle.ticketsSold || 0;
+    const remainingTickets = Math.max(0, totalTickets - soldTickets);
+    const soldPercentage = totalTickets > 0 ? (soldTickets / totalTickets) * 100 : 0;
+    const remainingPercentage = totalTickets > 0 ? (remainingTickets / totalTickets) * 100 : 0;
+    
+    res.json({
+      success: true,
+      data: {
+        totalTickets,
+        soldTickets,
+        remainingTickets,
+        soldPercentage: parseFloat(soldPercentage.toFixed(2)),
+        remainingPercentage: parseFloat(remainingPercentage.toFixed(2)),
+        status: raffle.status,
+        lastUpdated: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('Error getting raffle stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas del sorteo',
+      error: error.message
+    });
+  }
+});
+
+module.exports = {
+  getRaffles,
+  getRaffleById,
+  createRaffle,
+  updateRaffle,
+  updateRaffleStatus,
+  getPastRaffles,
+  deleteRaffle,
+  getRaffleStats
+};

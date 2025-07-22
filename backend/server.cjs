@@ -22,6 +22,7 @@ const connectDB = require('./src/config/db.js');
 const healthCheckRoutes = require('./src/routes/healthCheck.js');
 const raffleRoutes = require('./src/routes/raffleRoutes.js');
 const adminRoutes = require('./src/routes/adminRoutes.js');
+const ticketRoutes = require('./src/routes/ticketRoutes.js');
 
 connectDB().then(() => {
     console.log('Database connection successful, starting web server...');
@@ -46,6 +47,7 @@ connectDB().then(() => {
     app.use('/api/health', healthCheckRoutes);
     app.use('/api/raffles', raffleRoutes);
     app.use('/api/admin', adminRoutes);
+    app.use('/api/tickets', ticketRoutes);
 
 
 

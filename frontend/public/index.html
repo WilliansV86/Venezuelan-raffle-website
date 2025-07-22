@@ -26,6 +26,21 @@
         transform: scale(0.98);
       }
     }
+    
+    /* Direct progress bar styles that bypass React styling pipeline */
+    /* These styles have !important to override any conflicting styles */
+    .progress-bar-green {
+      background-color: #10B981 !important;
+    }
+    .progress-bar-yellow {
+      background-color: #F59E0B !important;
+    }
+    .progress-bar-red {
+      background-color: #EF4444 !important;
+    }
+    .progress-track {
+      background-color: #374151 !important;
+    }
   </style>
 </head>
 <body>

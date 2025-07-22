@@ -180,11 +180,10 @@ const CustomPurchasePage = () => {
   const closeTerms = () => setShowTerms(false);
   
   const increaseQuantity = () => {
-    if (raffle && quantity < (raffle.maxTicketsPerPurchase || 10)) {
-      const newQuantity = quantity + 1;
-      setQuantity(newQuantity);
-      setTotalPrice(calculatePrice(raffle, newQuantity, selectedPayment));
-    }
+    // No maximum limit - users can purchase as many tickets as they want
+    const newQuantity = quantity + 1;
+    setQuantity(newQuantity);
+    setTotalPrice(calculatePrice(raffle, newQuantity, selectedPayment));
   };
   
   const decreaseQuantity = () => {
@@ -258,8 +257,25 @@ const CustomPurchasePage = () => {
       console.log('Server response:', response.data);
       
       if (response.data.success) {
+        // Show success message with ticket numbers
         alert(`¡Compra exitosa! Tus tickets: ${response.data.tickets.join(', ')}`);
-        // Redirect or show success message
+        
+        // Refresh raffle stats to update the progress bar
+        try {
+          const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffleId}/stats`);
+          const stats = statsResponse.data.data || statsResponse.data;
+          
+          // Update the stats in state to refresh the UI
+          console.log('Updated stats after purchase:', stats);
+          
+          setRaffleStats({
+            soldTickets: stats.soldTickets || 0,
+            totalTickets: stats.totalTickets || 100,
+            remainingTickets: stats.remainingTickets || 100
+          });
+        } catch (statsError) {
+          console.error('Error refreshing ticket stats after purchase:', statsError);
+        }
       } else {
         alert(`Error: ${response.data.message || 'Error desconocido'}`);
       }
