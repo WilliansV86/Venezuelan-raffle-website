@@ -15,6 +15,10 @@ const transactionSchema = new mongoose.Schema({
   },
   tickets: [
     {
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: () => new mongoose.Types.ObjectId(),
+      },
       number: { type: String, required: true },
     },
   ],

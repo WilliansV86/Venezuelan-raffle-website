@@ -69,7 +69,8 @@ const getAdminRaffles = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/transactions
 // @access  Private/Admin
 const getAdminTransactions = asyncHandler(async (req, res) => {
-  const transactions = await Transaction.find({}).populate('raffle', 'name');
+  // Sort by createdAt in descending order to get the latest transactions first
+  const transactions = await Transaction.find({}).sort({ createdAt: -1 }).populate('raffle', 'name');
   res.json(transactions);
 });
 

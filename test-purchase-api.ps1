@@ -1,39 +1,33 @@
-# Test the purchase API endpoint directly with PowerShell
+# Test the purchase API endpoint using curl
 
-# Basic information for purchase
-$purchaseData = @{
-    fullName = "Test User"
-    email = "test@example.com"
-    whatsappNumber = "+1 405 493 1227"
-    identificationNumber = "V-17767135"
-    paymentAmount = 10
-    paymentMethod = "Zelle"
-    paymentReference = "REF123456"
-    raffleId = "649ab8f45cbb0d3f084c57a1"
-}
+# API endpoint URL
+$uri = "http://localhost:5100/api/tickets/purchase"
 
-# Convert to JSON
-$jsonBody = $purchaseData | ConvertTo-Json
+# Form fields
+$curlArgs = @(
+    "-F", 'firstName=Test',
+    "-F", 'lastName=User',
+    "-F", 'email=test@example.com',
+    "-F", 'identificationNumber=V-12345678',
+    "-F", 'whatsappNumber=+15551234567',
+    "-F", 'paymentReference=ZELLE-REF-78910',
+    "-F", 'quantity=2',
+    "-F", 'paymentMethod=Zelle',
+    "-F", 'raffleId=688e343b91768d1067cf9ac3',
+    "-F", 'totalAmount=10.00',
+    "-F", 'paymentProof=@.\payment-proof.png'
+)
 
-# Send request to purchase endpoint
+# Execute the curl command
 try {
-    Write-Host "Sending purchase request to API..."
-    Write-Host "NOTE: This test doesn't include the payment proof image"
-    Write-Host "since that requires multipart form data."
-    Write-Host ""
+    Write-Host "Sending purchase request to API: $uri"
+    Write-Host "Executing: curl.exe $($curlArgs -join ' ') $uri"
     
-    # Execute API call
-    $response = Invoke-RestMethod -Uri "http://localhost:5001/api/tickets/purchase" -Method Post -Body $jsonBody -ContentType "application/json" -ErrorAction Stop
+    $response = curl.exe @curlArgs $uri
     
-    # Show successful response
     Write-Host "Success! Purchase API responded:" -ForegroundColor Green
-    $response | ConvertTo-Json -Depth 4
+    Write-Host $response
 } catch {
-    # Show error details
-    Write-Host "Error calling purchase API:" -ForegroundColor Red
+    Write-Host "An error occurred while running curl:" -ForegroundColor Red
     Write-Host $_.Exception.Message
-    if ($_.ErrorDetails.Message) {
-        Write-Host "Details:" 
-        $_.ErrorDetails.Message
-    }
 }

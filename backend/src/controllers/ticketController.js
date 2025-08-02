@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Raffle = require('../models/Raffle');
+const Transaction = require('../models/Transaction');
 const multer = require('multer');
 const path = require('path');
 
@@ -63,12 +64,11 @@ const generateUniqueTickets = (quantity, existingTickets) => {
 // @route   POST /api/tickets/purchase
 // @access  Public
 const purchaseTickets = asyncHandler(async (req, res) => {
-  console.log('---------------------------------------');
-  console.log('Purchase endpoint hit at', new Date().toISOString());
-  console.log('Request body:', JSON.stringify(req.body, null, 2));
-  console.log('Request file:', req.file);
-  console.log('---------------------------------------');
   try {
+    console.log('Purchase endpoint hit at', new Date().toISOString());
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+
     const {
       firstName,
       lastName,
@@ -78,92 +78,81 @@ const purchaseTickets = asyncHandler(async (req, res) => {
       paymentReference,
       quantity,
       paymentMethod,
-      raffleId
+      raffleId,
+      totalAmount
     } = req.body;
 
-    // Validation
-    if (!firstName || !lastName || !email || !identificationNumber || !whatsappNumber || 
-        !paymentReference || !quantity || !paymentMethod || !raffleId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Por favor complete todos los campos requeridos' 
-      });
+    if (!firstName || !lastName || !email || !identificationNumber || !whatsappNumber || !quantity || !paymentMethod || !raffleId || !totalAmount) {
+      return res.status(400).json({ success: false, error: 'Por favor complete todos los campos requeridos' });
     }
 
-    // For testing, make payment proof optional
     if (!req.file) {
-      console.log('Warning: No payment proof file uploaded, but continuing for testing');
+      return res.status(400).json({ success: false, error: 'El comprobante de pago es requerido' });
     }
 
-    // Find the raffle
     const raffle = await Raffle.findById(raffleId);
     if (!raffle) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Sorteo no encontrado' 
-      });
+      return res.status(404).json({ success: false, error: 'Sorteo no encontrado' });
     }
 
-    // Check if the raffle is still active
     if (raffle.status !== 'active') {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Este sorteo ya no está activo' 
-      });
+      return res.status(400).json({ success: false, error: 'Este sorteo ya no está activo' });
     }
 
-    // Check if there are enough tickets available
     if (parseInt(quantity) > raffle.ticketsAvailable) {
-      return res.status(400).json({ 
-        success: false, 
-        error: `Solo quedan ${raffle.ticketsAvailable} tickets disponibles` 
-      });
+      return res.status(400).json({ success: false, error: `Solo quedan ${raffle.ticketsAvailable} tickets disponibles` });
     }
 
-    // Get all existing ticket numbers
-    const allExistingTickets = raffle.tickets ? raffle.tickets.map(ticket => ticket.ticketNumber) : [];
-    console.log('Existing tickets:', allExistingTickets);
-    
-    // Generate unique tickets
-    const newTickets = generateUniqueTickets(parseInt(quantity), allExistingTickets);
-    console.log('Generated new tickets:', newTickets);
-    
-    // Create ticket objects with buyer information
-    const ticketsToAdd = newTickets.map(number => ({
+    const allExistingTickets = raffle.tickets.map(ticket => ticket.ticketNumber);
+    const newTicketNumbers = generateUniqueTickets(parseInt(quantity), allExistingTickets);
+
+    const newTransaction = new Transaction({
+      raffle: raffleId,
+      participantInfo: {
+        name: firstName,
+        lastName: lastName,
+        email: email,
+        cedula: identificationNumber,
+        whatsapp: whatsappNumber,
+      },
+      tickets: newTicketNumbers.map(num => ({ number: num })),
+      paymentMethod,
+      paymentReference,
+      paymentScreenshot: req.file.path,
+      totalAmount: parseFloat(totalAmount),
+      status: 'pending', // Set as pending for admin review
+    });
+
+    console.log('--- PREPARING TO SAVE TRANSACTION ---');
+    console.log(JSON.stringify(newTransaction, null, 2));
+
+    const savedTransaction = await newTransaction.save();
+
+    console.log('--- TRANSACTION SAVED SUCCESSFULLY ---');
+    console.log(JSON.stringify(savedTransaction, null, 2));
+
+    const ticketsToAddToRaffle = newTicketNumbers.map(number => ({
       ticketNumber: number,
       owner: {
         name: `${firstName} ${lastName}`,
-        phone: whatsappNumber
+        phone: whatsappNumber,
       },
       paid: true,
-      paymentReference: paymentReference
+      paymentReference: savedTransaction._id, // Link to the transaction
     }));
-    
-    console.log('Tickets to add:', ticketsToAdd);
-    
-    // Initialize tickets array if it doesn't exist
-    if (!raffle.tickets) {
-      raffle.tickets = [];
-    }
-    
-    // Add new tickets to the raffle
-    raffle.tickets.push(...ticketsToAdd);
-    
-    // Update ticketsSold count
+
+    raffle.tickets.push(...ticketsToAddToRaffle);
     raffle.ticketsSold += parseInt(quantity);
-    
-    // Save the updated raffle
     await raffle.save();
-    
-    // Return success response with the ticket numbers
+
     res.status(201).json({
       success: true,
       message: 'Compra realizada con éxito',
-      tickets: newTickets,
+      tickets: newTicketNumbers,
       raffle: {
         name: raffle.name,
-        ticketsAvailable: raffle.ticketsAvailable
-      }
+        ticketsAvailable: raffle.ticketsAvailable,
+      },
     });
   } catch (error) {
     console.error('---------------------------------------');
@@ -171,7 +160,6 @@ const purchaseTickets = asyncHandler(async (req, res) => {
     console.error('Stack trace:', error.stack);
     console.error('---------------------------------------');
     
-    // Send a more detailed error response for debugging
     res.status(500).json({
       success: false,
       error: 'Error al procesar la compra de tickets',
@@ -186,55 +174,48 @@ const purchaseTickets = asyncHandler(async (req, res) => {
 // @access  Public
 const verifyTicket = asyncHandler(async (req, res) => {
   const { ticketNumber, identificationNumber } = req.body;
-  
+
   if (!ticketNumber || !identificationNumber) {
-    return res.status(400).json({
-      success: false,
-      error: 'Número de ticket e identificación son requeridos'
-    });
+    return res.status(400).json({ success: false, error: 'Número de ticket e identificación son requeridos' });
   }
-  
-  // Find raffles that have this ticket number
-  const raffles = await Raffle.find({
-    'ticketsSold.number': ticketNumber
+
+  // Find the raffle that contains this ticket number
+  const raffle = await Raffle.findOne({ 'tickets.ticketNumber': ticketNumber });
+
+  if (!raffle) {
+    return res.status(404).json({ success: false, error: 'Ticket no encontrado' });
+  }
+
+  // Find the specific ticket in the raffle
+  const ticket = raffle.tickets.find(t => t.ticketNumber === ticketNumber);
+
+  // Find the transaction associated with the ticket to verify the owner
+  const transaction = await Transaction.findOne({
+    raffle: raffle._id,
+    'tickets.number': ticketNumber,
+    'participantInfo.cedula': identificationNumber
   });
-  
-  if (raffles.length === 0) {
-    return res.status(404).json({
-      success: false,
-      error: 'Ticket no encontrado'
-    });
-  }
-  
-  // Check each raffle to find the ticket and verify owner
-  for (const raffle of raffles) {
-    const ticket = raffle.ticketsSold.find(t => t.number === ticketNumber);
-    
-    if (ticket && ticket.buyer.identificationNumber === identificationNumber) {
-      return res.json({
-        success: true,
-        ticket: {
-          number: ticket.number,
-          buyer: {
-            firstName: ticket.buyer.firstName,
-            lastName: ticket.buyer.lastName,
-            identificationNumber: ticket.buyer.identificationNumber
-          }
-        },
-        raffle: {
-          name: raffle.name,
-          date: raffle.drawDate,
-          status: raffle.status
+
+  if (ticket && transaction) {
+    return res.json({
+      success: true,
+      ticket: {
+        number: ticket.ticketNumber,
+        buyer: {
+          firstName: transaction.participantInfo.name,
+          lastName: transaction.participantInfo.lastName,
+          identificationNumber: transaction.participantInfo.cedula
         }
-      });
-    }
+      },
+      raffle: {
+        name: raffle.name,
+        date: raffle.drawDate,
+        status: raffle.status
+      }
+    });
+  } else {
+    return res.status(403).json({ success: false, error: 'El número de identificación no coincide con el dueño del ticket' });
   }
-  
-  // If we get here, the identification number doesn't match
-  return res.status(403).json({
-    success: false,
-    error: 'El número de identificación no coincide con el dueño del ticket'
-  });
 });
 
 module.exports = {

@@ -110,11 +110,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
               {/* Premium card-style progress bar */}
               <div className="-mt-3 w-full px-2">
                 <PremiumProgressBar progress={progress} />
-                {raffleStats.totalTickets > 0 && (
-                  <div className="text-xs text-center mt-1 text-cyan-300">
-                    Vendidos: {raffleStats.soldTickets} de {raffleStats.totalTickets} tickets
-                  </div>
-                )}
+
               </div>
               <div className="flex justify-center mt-2">
                 <button 

@@ -4,7 +4,7 @@ import axios from 'axios';
 // This allows us to use different URLs for development and production
 const api = axios.create({
   // Try with IP address instead of localhost
-  baseURL: 'http://127.0.0.1:5100', 
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5100', 
   timeout: 60000, // 60-second timeout for cold starts
   timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend esté funcionando.'
 });

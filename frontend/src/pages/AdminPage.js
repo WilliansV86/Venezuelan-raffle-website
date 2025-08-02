@@ -84,15 +84,31 @@ const AdminPage = () => {
     }
   }, [adminInfo?.token]);
 
-  // Effect to fetch data when view or auth changes
+  // Effect to fetch data when view or auth changes, with polling for transactions
   useEffect(() => {
-    if (adminInfo?.token) {
-      if (view === 'raffles') {
-        fetchRaffles();
-      } else if (view === 'transactions') {
-        fetchTransactions();
-      }
+    if (!adminInfo?.token) {
+      return;
     }
+
+    let intervalId = null;
+
+    if (view === 'raffles') {
+      fetchRaffles();
+    } else if (view === 'transactions') {
+      fetchTransactions(); // Fetch immediately on view change
+      
+      // Then set up polling
+      intervalId = setInterval(() => {
+        fetchTransactions();
+      }, 10000); // Poll every 10 seconds
+    }
+
+    // Cleanup function to clear the interval when the component unmounts or the view changes
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [view, adminInfo, fetchRaffles, fetchTransactions]);
 
   const handleLogout = () => {
@@ -102,6 +118,10 @@ const AdminPage = () => {
 
   const handleRaffleUpdate = () => {
     fetchRaffles(); // Re-fetch raffles after an update
+  };
+
+  const handleDeleteRaffle = (raffleId) => {
+    setRaffles(raffles.filter(r => r._id !== raffleId));
   };
   
   const handleTransactionStatusUpdate = async (transactionId, newStatus) => {
@@ -187,6 +207,7 @@ const AdminPage = () => {
             loading={rafflesLoading}
             error={rafflesError}
             onUpdate={handleRaffleUpdate}
+            onDelete={handleDeleteRaffle}
             adminToken={adminInfo.token}
           />
         )}

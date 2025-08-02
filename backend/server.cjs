@@ -29,7 +29,14 @@ connectDB().then(() => {
     const app = express();
     
     // Configure CORS to allow all requests temporarily to fix connection issues
-    app.use(cors());
+    const corsOptions = {
+      origin: 'http://localhost:3000',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true
+    };
+    app.use(cors(corsOptions));
+    app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
     
     // Log all incoming requests to help diagnose connection issues
     app.use((req, res, next) => {
@@ -38,6 +45,9 @@ connectDB().then(() => {
     });
     
     app.use(express.json());
+
+    // Serve static files from the 'uploads' directory
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
     const PORT = 5100;
 
     app.get('/', (req, res) => {

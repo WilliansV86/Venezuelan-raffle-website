@@ -7,7 +7,7 @@ import CreateRaffleForm from './CreateRaffleForm';
 import RaffleListTable from './RaffleListTable';
 import { FaCheckCircle } from 'react-icons/fa';
 
-const RaffleStatusManager = ({ raffles: initialRaffles, loading, error, onUpdate, adminToken }) => {
+const RaffleStatusManager = ({ raffles: initialRaffles, loading, error, onUpdate, onDelete, adminToken }) => {
   // Create a local copy of raffles to manage state updates without full reloads
   const [raffles, setRaffles] = useState(initialRaffles);
   const navigate = useNavigate();
@@ -109,12 +109,19 @@ const RaffleStatusManager = ({ raffles: initialRaffles, loading, error, onUpdate
     navigate(`/admin/raffles/edit/${id}`);
   };
 
-  const handleDelete = (id) => handleRaffleAction(() => {
+  const handleDelete = (id) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta rifa? Esta acción no se puede deshacer.')) {
-      return api.delete(`/api/raffles/${id}`, { headers: { Authorization: `Bearer ${adminToken}` } });
+      handleRaffleAction(
+        () => api.delete(`/api/raffles/${id}`, { headers: { Authorization: `Bearer ${adminToken}` } }),
+        () => {
+          // This function is passed from AdminPage to update its state
+          if (onDelete) {
+            onDelete(id);
+          }
+        }
+      );
     }
-    return Promise.resolve();
-  });
+  };
 
   return (
     <div className="p-1">

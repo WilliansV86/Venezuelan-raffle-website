@@ -6,6 +6,20 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
 
   if (!transaction) return null;
 
+  // Construct the full URL for the payment proof image
+  const getImageUrl = (filePath) => {
+    if (!filePath) return null;
+    // The backend serves the 'uploads' folder. We need to get the relative path from there.
+    const parts = filePath.replace(/\\/g, '/').split('/');
+    const uploadsIndex = parts.lastIndexOf('uploads');
+    if (uploadsIndex === -1) return null; // Should not happen if path is correct
+
+    const relativePath = parts.slice(uploadsIndex + 1).join('/');
+    return `http://localhost:5100/uploads/${relativePath}`;
+  };
+
+  const imageUrl = getImageUrl(transaction.paymentScreenshot);
+
   const handleStatusUpdate = async (newStatus) => {
     setIsSubmitting(true);
     await onUpdateStatus(transaction._id, newStatus);
@@ -55,23 +69,23 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Left Column: Buyer & Raffle Info */}
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-              <DetailItem label="Comprador" value={transaction.buyerName} />
-              <DetailItem label="Email" value={transaction.buyerEmail} />
+              <DetailItem label="Comprador" value={transaction.participantInfo ? `${transaction.participantInfo.name} ${transaction.participantInfo.lastName}` : 'N/A'} />
+              <DetailItem label="Email" value={transaction.participantInfo?.email} />
               <DetailItem label="WhatsApp" value={transaction.participantInfo?.whatsapp} />
               <DetailItem label="Rifa" value={transaction.raffle?.name} />
-              <DetailItem label="Monto (USD)" value={`$${transaction.amountUSD}`} />
+              <DetailItem label="Monto" value={typeof transaction.totalAmount === 'number' ? `${transaction.paymentMethod?.toLowerCase() === 'zelle' || transaction.paymentMethod?.toLowerCase() === 'binance' ? '$' : 'Bs'} ${transaction.totalAmount.toFixed(2)}` : 'N/A'} />
               <DetailItem label="Método de Pago" value={transaction.paymentMethod} />
               <DetailItem label="Referencia de Pago" value={transaction.paymentReference} mono />
               <DetailItem label="Fecha" value={new Date(transaction.createdAt).toLocaleString()} />
             </div>
 
             {/* Right Column: Screenshot */}
-            {transaction.paymentScreenshot && (
+            {imageUrl && (
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
-                <a href={transaction.paymentScreenshot} target="_blank" rel="noopener noreferrer" className="block group">
+                <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block group">
                   <img 
-                    src={transaction.paymentScreenshot} 
+                    src={imageUrl} 
                     alt="Comprobante de pago" 
                     className="w-full rounded-lg border-2 border-gray-600 group-hover:border-cyan-400 transition-all duration-300 transform group-hover:scale-105"
                   />
@@ -85,8 +99,8 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
             <h3 className="text-lg font-semibold mb-3 text-gray-300">Tickets Comprados ({transaction.tickets.length})</h3>
             <div className="flex flex-wrap gap-3">
               {transaction.tickets.map(ticket => (
-                <span key={ticket} className="bg-cyan-500/20 text-cyan-300 font-mono text-base font-bold px-4 py-2 rounded-md">
-                  {ticket}
+                <span key={ticket._id || ticket.number} className="bg-cyan-500/20 text-cyan-300 font-mono text-base font-bold px-4 py-2 rounded-md">
+                  {ticket.number}
                 </span>
               ))}
             </div>

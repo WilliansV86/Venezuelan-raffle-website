@@ -49,6 +49,15 @@ const raffleSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+// Virtual property to calculate available tickets
+raffleSchema.virtual('ticketsAvailable').get(function() {
+  return this.maxTickets - this.ticketsSold;
+});
+
+// Ensure virtual fields are included in toJSON and toObject outputs
+raffleSchema.set('toJSON', { virtuals: true });
+raffleSchema.set('toObject', { virtuals: true });
+
 const Raffle = mongoose.model('Raffle', raffleSchema);
 
 module.exports = Raffle;

@@ -37,9 +37,13 @@ const TransactionTable = ({ transactions, onRowClick }) => {
               transactions.map((tx) => (
                 <tr key={tx._id} onClick={() => onRowClick(tx)} className="hover:bg-gray-700/50 cursor-pointer transition-colors duration-200">
                   <td className="px-6 py-5 whitespace-nowrap text-base text-gray-400 font-mono">{tx._id.slice(-8)}</td>
-                  <td className="px-6 py-5 whitespace-nowrap text-base font-medium text-white">{tx.buyerName || 'N/A'}</td>
-                  <td className="px-6 py-5 whitespace-nowrap text-base text-gray-300">{tx.buyerEmail || 'N/A'}</td>
-                  <td className="px-6 py-5 whitespace-nowrap text-base text-green-400 font-semibold">{typeof tx.amountUSD === 'number' ? tx.amountUSD.toFixed(2) : 'N/A'}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-base font-medium text-white">{tx.participantInfo ? `${tx.participantInfo.name} ${tx.participantInfo.lastName}` : 'N/A'}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-base text-gray-300">{tx.participantInfo ? tx.participantInfo.email : 'N/A'}</td>
+                  <td className="px-6 py-5 whitespace-nowrap text-base text-green-400 font-semibold">
+                    {typeof tx.totalAmount === 'number' 
+                      ? `${tx.paymentMethod?.toLowerCase() === 'zelle' || tx.paymentMethod?.toLowerCase() === 'binance' ? '$' : 'Bs'} ${tx.totalAmount.toFixed(2)}` 
+                      : 'N/A'}
+                  </td>
                   <td className="px-6 py-5 whitespace-nowrap text-base text-center text-white">{tx.tickets.length}</td>
                   <td className="px-6 py-5 whitespace-nowrap text-base text-gray-400">{new Date(tx.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-5 whitespace-nowrap text-center">{getStatusBadge(tx.status)}</td>

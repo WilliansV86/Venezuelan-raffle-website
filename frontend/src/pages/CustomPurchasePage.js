@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api'; // Use the centralized api service
 import { FaWhatsapp } from 'react-icons/fa';
+import PurchaseSuccessModal from '../components/PurchaseSuccessModal'; // Import the modal
 
 const CustomPurchasePage = () => {
   const { raffleId } = useParams();
@@ -32,6 +33,8 @@ const CustomPurchasePage = () => {
   });
   const [showWarnings, setShowWarnings] = useState(false); // Set to false to hide warnings
   const [showTerms, setShowTerms] = useState(false); // State to control Terms & Conditions modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [purchasedTickets, setPurchasedTickets] = useState([]);
 
   // Ensure page scrolls to top on load and clean up image URL when component unmounts
   useEffect(() => {
@@ -66,10 +69,10 @@ const CustomPurchasePage = () => {
     const fetchRaffle = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5100/api/raffles/${raffleId}`);
+        const { data } = await api.get(`/api/raffles/${raffleId}`);
         
         // Handle both response formats
-        const raffleData = response.data.data || response.data;
+        const raffleData = data.data || data;
         setRaffle(raffleData);
         
         // Set initial quantity and calculate price
@@ -79,8 +82,8 @@ const CustomPurchasePage = () => {
         
         // Check ticket availability
         try {
-          const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffleId}/stats`);
-          const stats = statsResponse.data.data || statsResponse.data;
+          const { data: statsData } = await api.get(`/api/raffles/${raffleId}/stats`);
+          const stats = statsData.data || statsData;
           
           // Store the stats in state
           setRaffleStats({
@@ -112,15 +115,7 @@ const CustomPurchasePage = () => {
     
     fetchRaffle();
     
-    // Set up polling to check for raffle updates every 30 seconds
-    const pollInterval = setInterval(() => {
-      if (!isSubmitting) { // Don't poll during form submission
-        fetchRaffle();
-      }
-    }, 30000); // Poll every 30 seconds
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(pollInterval);
+
   }, [raffleId, isSubmitting]);
 
   const handleInputChange = (e) => {
@@ -236,7 +231,8 @@ const CustomPurchasePage = () => {
       submitData.append('paymentReference', formData.paymentReference);
       submitData.append('quantity', quantity);
       submitData.append('paymentMethod', selectedPayment);
-      submitData.append('raffleId', raffleId);
+            submitData.append('raffleId', raffleId);
+      submitData.append('totalAmount', totalPrice);
       
       if (paymentProof) {
         submitData.append('paymentProof', paymentProof);
@@ -248,22 +244,19 @@ const CustomPurchasePage = () => {
         console.log(`${pair[0]}: ${pair[1]}`);
       }
       
-      const response = await axios.post('http://localhost:5100/api/tickets/purchase', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await api.post('/api/tickets/purchase', submitData);
       
       console.log('Server response:', response.data);
       
       if (response.data.success) {
-        // Show success message with ticket numbers
-        alert(`¡Compra exitosa! Tus tickets: ${response.data.tickets.join(', ')}`);
+        // Set purchased tickets and show success modal
+        setPurchasedTickets(response.data.tickets);
+        setShowSuccessModal(true);
         
         // Refresh raffle stats to update the progress bar
         try {
-          const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffleId}/stats`);
-          const stats = statsResponse.data.data || statsResponse.data;
+          const { data: statsData } = await api.get(`/api/raffles/${raffleId}/stats`);
+          const stats = statsData.data || statsData;
           
           // Update the stats in state to refresh the UI
           console.log('Updated stats after purchase:', stats);
@@ -287,6 +280,12 @@ const CustomPurchasePage = () => {
     }
   };
 
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+    // Redirect to home or another page after closing the modal
+    window.location.href = '/';
+  };
+
   if (loading) {
     return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Cargando...</div>;
   }
@@ -301,6 +300,11 @@ const CustomPurchasePage = () => {
 
   return (
     <div className="min-h-screen text-white" style={{ background: '#121826', backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
+      <PurchaseSuccessModal 
+        isOpen={showSuccessModal}
+        onClose={handleCloseModal}
+        tickets={purchasedTickets}
+      />
       <header className="bg-gray-900/80 border-b border-blue-900/30 shadow-lg">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Link to="/" className="text-cyan-400 hover:text-cyan-300 transition flex items-center gap-2">

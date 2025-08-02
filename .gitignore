@@ -36,3 +36,6 @@ logs/
 
 # Misc
 .DS_Store
+
+# User Uploads
+/backend/uploads/
