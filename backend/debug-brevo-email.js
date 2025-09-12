@@ -12,8 +12,8 @@ function checkConfiguration() {
     return false;
   }
   
-  console.log('✓ BREVO_API_KEY found:', process.env.BREVO_API_KEY.substring(0, 10) + '...');
-  console.log('✓ BREVO_API_KEY length:', process.env.BREVO_API_KEY.length);
+  console.log('✓ BREVO_API_KEY found: [Key hidden for security]');
+  console.log('✓ BREVO_API_KEY is properly configured');
   
   return true;
 }
