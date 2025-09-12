@@ -17,10 +17,11 @@ const PurchaseSuccessModal = ({ isOpen, onClose, tickets }) => {
         <p className="text-gray-400 mb-6">Tus tickets serán verificados y te serán enviados por correo electrónico en las próximas 24 horas.</p>
         
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-3">Tus tickets:</h3>
+          <h3 className="text-lg font-semibold text-white mb-3">Información de compra:</h3>
           <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
-            <p className="text-yellow-400 text-xl font-mono tracking-wider break-words">
-              {tickets.join(', ')}
+            <p className="text-gray-300 text-md mb-2">Cantidad de tickets adquiridos:</p>
+            <p className="text-yellow-400 text-xl font-mono tracking-wider">
+              {tickets.length}
             </p>
           </div>
         </div>

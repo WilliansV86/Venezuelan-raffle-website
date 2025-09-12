@@ -7,13 +7,27 @@ const path = require('path');
 // Configure multer storage for payment proofs
 // Configure multer storage for payment proofs
 const fs = require('fs');
+
 const uploadDir = path.join(__dirname, '../../uploads/payment-proofs');
 
-// Create directory if it doesn't exist
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log(`Created directory: ${uploadDir}`);
-}
+// A function to ensure the upload directory exists.
+// This is safer than running fs.mkdirSync at the top level of the module.
+const ensureUploadDirExists = () => {
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      console.log(`Upload directory created at: ${uploadDir}`);
+    }
+  } catch (error) {
+    console.error(`CRITICAL ERROR: Could not create upload directory at ${uploadDir}.`);
+    console.error('Please check file permissions. Full error:', error);
+    // Exit gracefully if we can't create the directory, as uploads will fail.
+    process.exit(1);
+  }
+};
+
+// Call the function to make sure the directory is ready.
+ensureUploadDirExists();
 
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
@@ -137,24 +151,24 @@ const purchaseTickets = asyncHandler(async (req, res) => {
         name: `${firstName} ${lastName}`,
         phone: whatsappNumber,
       },
-      paid: true,
-      paymentReference: savedTransaction._id, // Link to the transaction
+      paid: true, // The transaction is created, so the ticket is considered paid
+      paymentReference: savedTransaction._id, // Link to the transaction for verification
     }));
 
     raffle.tickets.push(...ticketsToAddToRaffle);
     raffle.ticketsSold += parseInt(quantity);
     await raffle.save();
 
+    console.log('--- RAFFLE UPDATED WITH NEW TICKETS ---');
+
     res.status(201).json({
       success: true,
       message: 'Compra realizada con éxito',
-      tickets: newTicketNumbers,
-      raffle: {
-        name: raffle.name,
-        ticketsAvailable: raffle.ticketsAvailable,
-      },
+      tickets: newTicketNumbers
     });
   } catch (error) {
+
+
     console.error('---------------------------------------');
     console.error('ERROR in purchaseTickets:', error);
     console.error('Stack trace:', error.stack);
@@ -218,8 +232,21 @@ const verifyTicket = asyncHandler(async (req, res) => {
   }
 });
 
+const initializeTicketController = async () => {
+  try {
+    // Create the directory for storing payment screenshots if it doesn't exist
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+  } catch (error) {
+    console.error('Error initializing ticket controller:', error);
+  }
+};
+
 module.exports = {
   purchaseTickets,
   verifyTicket,
-  storage
+  storage,
+  initializeTicketController
 };

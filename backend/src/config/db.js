@@ -12,6 +12,10 @@ const connectDB = async () => {
     console.log(`Using MONGO_URI: ${process.env.MONGO_URI ? 'FOUND' : 'NOT FOUND'}`);
     console.log('--------------------------------------------------');
 
+        console.log('--- Mongoose Connection Details ---');
+    console.log('URI:', process.env.MONGO_URI);
+    console.log('-----------------------------------');
+
     const conn = await mongoose.connect(process.env.MONGO_URI);
 
     console.log('--------------------------------------------------');

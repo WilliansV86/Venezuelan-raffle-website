@@ -43,10 +43,11 @@ const PaymentConfirmation = ({ orderData }) => {
           </svg>
         </div>
         
-        <h3 className="font-bold text-2xl mb-2">¡Gracias por tu compra!</h3>
+        <h3 className="font-bold text-2xl mb-2">¡Compra Exitosa!</h3>
         <p className="text-gray-600 mb-6">
-          Hemos recibido tu comprobante de pago y estamos verificándolo. 
-          Tus boletos serán confirmados en breve.
+          Tu compra ha sido procesada correctamente.
+          Tus tickets serán verificados y te serán enviados
+          por correo electrónico en las próximas 24 horas.
         </p>
       </div>
       
@@ -56,9 +57,10 @@ const PaymentConfirmation = ({ orderData }) => {
           <span className="font-bold">{orderData.orderId}</span>
         </div>
         
+        {/* Ticket numbers are now hidden and will be sent via email after verification */}
         <div className="flex justify-between items-center mb-2">
-          <span className="font-medium">Boletos:</span>
-          <span>{orderData.tickets.join(', ')}</span>
+          <span className="font-medium">Cantidad de Boletos:</span>
+          <span>{orderData.tickets.length}</span>
         </div>
         
         <div className="flex justify-between items-center">

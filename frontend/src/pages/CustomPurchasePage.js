@@ -249,7 +249,8 @@ const CustomPurchasePage = () => {
       console.log('Server response:', response.data);
       
       if (response.data.success) {
-        // Set purchased tickets and show success modal
+        // Store ticket quantity but don't display actual numbers
+        // We'll only set the count of tickets purchased, not the actual numbers
         setPurchasedTickets(response.data.tickets);
         setShowSuccessModal(true);
         

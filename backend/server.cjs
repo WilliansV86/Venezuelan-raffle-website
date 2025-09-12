@@ -13,7 +13,6 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // Load environment variables from .env file FIRST.
-// This is critical. It must happen before any other file is imported.
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const express = require('express');
@@ -23,12 +22,12 @@ const healthCheckRoutes = require('./src/routes/healthCheck.js');
 const raffleRoutes = require('./src/routes/raffleRoutes.js');
 const adminRoutes = require('./src/routes/adminRoutes.js');
 const ticketRoutes = require('./src/routes/ticketRoutes.js');
+const transactionRoutes = require('./src/routes/transactionRoutes.js');
 
 connectDB().then(() => {
     console.log('Database connection successful, starting web server...');
     const app = express();
     
-    // Configure CORS to allow all requests temporarily to fix connection issues
     const corsOptions = {
       origin: 'http://localhost:3000',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -36,9 +35,7 @@ connectDB().then(() => {
       credentials: true
     };
     app.use(cors(corsOptions));
-    app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
     
-    // Log all incoming requests to help diagnose connection issues
     app.use((req, res, next) => {
       console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
       next();
@@ -46,7 +43,6 @@ connectDB().then(() => {
     
     app.use(express.json());
 
-    // Serve static files from the 'uploads' directory
     app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
     const PORT = 5100;
 
@@ -58,8 +54,7 @@ connectDB().then(() => {
     app.use('/api/raffles', raffleRoutes);
     app.use('/api/admin', adminRoutes);
     app.use('/api/tickets', ticketRoutes);
-
-
+    app.use('/api/transactions', transactionRoutes);
 
     try {
       console.log('Attempting to start server on port', PORT);

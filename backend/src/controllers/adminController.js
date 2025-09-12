@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const jwt = require('jsonwebtoken');
 const Raffle = require('../models/Raffle.js');
 const Transaction = require('../models/Transaction.js');
+const { sendEmail } = require('../utils/emailService');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -99,4 +100,65 @@ const createRaffle = asyncHandler(async (req, res) => {
   res.status(201).json(createdRaffle);
 });
 
-module.exports = { authAdmin, getAdminRaffles, createRaffle, getAdminTransactions, verifyAdminKey };
+// @desc    Update transaction status
+// @route   PATCH /api/admin/transactions/:id/status
+// @access  Private/Admin
+const updateTransactionStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const { id } = req.params;
+
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status value.' });
+  }
+
+  const transaction = await Transaction.findById(id).populate('raffle', 'name');
+
+  if (!transaction) {
+    res.status(404).json({ message: 'Transaction not found' });
+    return;
+  }
+
+  transaction.status = status;
+
+  try {
+    const updatedTransaction = await transaction.save();
+    console.log('Transaction status updated and saved successfully.');
+
+    // If the transaction is approved, attempt to send a confirmation email
+    if (updatedTransaction.status === 'approved') {
+      // This part is wrapped in its own try/catch to prevent email errors from crashing the main flow.
+      try {
+        console.log('[Email Service] Preparing to send approval email.');
+        if (!updatedTransaction.participantEmail || !updatedTransaction.raffle || !updatedTransaction.raffle.name) {
+          console.error('[Email Service] CRITICAL: Cannot send email because required data is missing.');
+        } else {
+          await sendEmail({
+            to: updatedTransaction.participantEmail,
+            subject: `Confirmación de tu Compra - Rifa: ${updatedTransaction.raffle.name}`,
+            html: `
+              <h1>¡Tu pago ha sido aprobado!</h1>
+              <p>Hola ${updatedTransaction.participantName},</p>
+              <p>Tu compra para la rifa "<strong>${updatedTransaction.raffle.name}</strong>" ha sido confirmada con éxito.</p>
+              <p>Tus números de la suerte son:</p>
+              <h2>${updatedTransaction.tickets.join(', ')}</h2>
+              <br>
+              <p>Atentamente,</p>
+              <p>El equipo de Tu Suerte Está Aquí</p>
+            `,
+          });
+          console.log(`Confirmation email sent to ${updatedTransaction.participantEmail}`);
+        }
+      } catch (emailError) {
+        console.error('[CONTROLLER] Non-blocking error: Failed to send email. Full error:', emailError);
+      }
+    }
+
+    res.json(updatedTransaction);
+
+  } catch (error) {
+    console.error('CRITICAL: Failed to save transaction to database. Error:', error);
+    res.status(500).json({ message: 'Database error while updating transaction.', error: error.message });
+  }
+});
+
+module.exports = { authAdmin, getAdminRaffles, createRaffle, getAdminTransactions, verifyAdminKey, updateTransactionStatus };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -124,19 +125,14 @@ const AdminPage = () => {
     setRaffles(raffles.filter(r => r._id !== raffleId));
   };
   
-  const handleTransactionStatusUpdate = async (transactionId, newStatus) => {
+      const handleTransactionStatusUpdate = async (transactionId, newStatus) => {
     try {
       console.log(`Updating transaction ${transactionId} to status: ${newStatus}`);
       const config = { headers: { Authorization: `Bearer ${adminInfo.token}` } };
-      await api.put(`/api/admin/transactions/${transactionId}/status`, { status: newStatus }, config);
+            await api.put(`/api/transactions/${transactionId}/status`, { status: newStatus }, config);
       
-      // Update the selected transaction immediately for instant UI feedback
-      if (selectedTransaction && selectedTransaction._id === transactionId) {
-        console.log('Updating selected transaction status in UI');
-        setSelectedTransaction(prev => ({ ...prev, status: newStatus }));
-      }
-      
-      // Then refresh the full transactions list
+      // On success, close the modal and refresh the list
+      handleCloseModal();
       fetchTransactions();
     } catch (error) {
       console.error('Error updating transaction status:', error);
