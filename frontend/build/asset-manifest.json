@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/static/css/main.a77ab8af.css",
+    "main.js": "/static/js/main.27ef85b9.js",
+    "static/media/logo.jpg": "/static/media/logo.80954a6835ad42fc0b51.jpg",
+    "static/media/logo-loteria-final.png": "/static/media/logo-loteria-final.7774ee7fb7a1181157d9.png",
+    "static/media/Logo-supergana-final.png": "/static/media/Logo-supergana-final.aa3cc7d80d3a21bf1973.png",
+    "static/media/flag-ve.svg": "/static/media/flag-ve.ad3e42bd04776982de6e49f570e30337.svg",
+    "index.html": "/index.html",
+    "main.a77ab8af.css.map": "/static/css/main.a77ab8af.css.map",
+    "main.27ef85b9.js.map": "/static/js/main.27ef85b9.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a77ab8af.css",
+    "static/js/main.27ef85b9.js"
+  ]
+}
