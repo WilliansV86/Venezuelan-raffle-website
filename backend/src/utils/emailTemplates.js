@@ -124,7 +124,7 @@ const generateApprovalEmail = (userName, raffleName, ticketNumbers) => {
 <body>
   <div class="container">
     <div class="header">
-      <img src="${logoUrl}" alt="Tu Suerte Está Aquí" class="logo">
+      <div style="font-size: 24px; font-weight: bold; color: white; margin-bottom: 10px;">Tu Suerte Está Aquí</div>
       <h1>¡Tu compra ha sido aprobada!</h1>
     </div>
     <div class="content">
@@ -144,9 +144,10 @@ const generateApprovalEmail = (userName, raffleName, ticketNumbers) => {
     </div>
     <div class="footer">
       <div class="social-links">
-        <span class="social-icon"><a href="https://www.facebook.com/tusuerteestaaqui" title="Facebook">f</a></span>
-        <span class="social-icon"><a href="https://www.instagram.com/tusuerteestaaqui" title="Instagram">i</a></span>
-        <span class="social-icon"><a href="https://wa.me/584241234567" title="WhatsApp">w</a></span>
+        <span class="social-icon"><a href="https://www.facebook.com/profile.php?id=Tusuerte%20Estaaqui" title="Facebook">f</a></span>
+        <span class="social-icon"><a href="https://instagram.com/tusuerteestaaquive" title="Instagram">i</a></span>
+        <span class="social-icon"><a href="https://tiktok.com/@tusuerte.estaaqui" title="TikTok">t</a></span>
+        <span class="social-icon"><a href="https://wa.me/584241378533" title="WhatsApp">w</a></span>
       </div>
       <p>© ${new Date().getFullYear()} Tu Suerte Está Aquí. Todos los derechos reservados.</p>
     </div>
