@@ -58,7 +58,7 @@ const TestPurchasePage = () => {
       }
       
       // Direct API call to our test server
-      const response = await axios.post(apiConfig.endpoints.tickets/purchase, submitData, {
+      const response = await axios.post(`${apiConfig.endpoints.tickets}/purchase`, submitData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

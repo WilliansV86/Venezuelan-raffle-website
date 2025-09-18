@@ -3,7 +3,8 @@ import axios from 'axios';
 import apiConfig from '../config/apiConfig';
 
 
-const API_BASE_URL = 'http://localhost:5100';
+// Using centralized apiConfig instead of hardcoded URL
+const API_BASE_URL = apiConfig.API_URL.replace('/api', '');
 
 const directTicketService = {
   // Direct purchase tickets bypassing any middleware issues

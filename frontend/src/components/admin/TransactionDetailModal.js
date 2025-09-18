@@ -17,7 +17,7 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
     if (uploadsIndex === -1) return null; // Should not happen if path is correct
 
     const relativePath = parts.slice(uploadsIndex + 1).join('/');
-    return `http://localhost:5100/uploads/${relativePath}`;
+    return `${apiConfig.API_URL.replace('/api', '')}/uploads/${relativePath}`;
   };
 
   const imageUrl = getImageUrl(transaction.paymentScreenshot);

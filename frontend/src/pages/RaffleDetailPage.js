@@ -82,8 +82,8 @@ const RaffleDetailPage = () => {
       setError(null);
       try {
         const [raffleRes, statsRes] = await Promise.all([
-          axios.get(`http://localhost:5100/api/raffles/${id}`),
-          axios.get(`http://localhost:5100/api/raffles/${id}/stats`),
+          axios.get(`${apiConfig.API_URL}/raffles/${id}`),
+          axios.get(`${apiConfig.API_URL}/raffles/${id}/stats`),
         ]);
 
         setRaffle(raffleRes.data);
@@ -146,7 +146,7 @@ const RaffleDetailPage = () => {
     submissionData.append('phone', formData.phone);
 
     try {
-      const response = await axios.post(apiConfig.endpoints.tickets/purchase, submissionData, {
+      const response = await axios.post(`${apiConfig.API_URL}/tickets/purchase`, submissionData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

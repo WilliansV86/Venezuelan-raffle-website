@@ -23,7 +23,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
     
     const fetchRaffleStats = async () => {
       try {
-        const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffle._id}/stats`);
+        const statsResponse = await axios.get(`${apiConfig.API_URL}/raffles/${raffle._id}/stats`);
         const stats = statsResponse.data.data || statsResponse.data;
         
         // Update the stats in state to refresh the UI
@@ -63,7 +63,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
 
   // Fix image path to point to the correct backend URL
   const imageUrl = raffle.image ? 
-    raffle.image.startsWith('http') ? raffle.image : apiConfig.API_URL.replace("/api", "") + ${raffle.image} 
+    raffle.image.startsWith('http') ? raffle.image : `${apiConfig.API_URL.replace("/api", "")}${raffle.image}` 
     : '/images/default-raffle-image.png';
 
   const handleParticipateClick = () => {
