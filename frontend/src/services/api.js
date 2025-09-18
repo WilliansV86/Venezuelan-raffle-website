@@ -1,10 +1,10 @@
 import axios from 'axios';
+import apiConfig from '../config/apiConfig';
 
-// Create an axios instance with the base URL from environment variables
+// Create an axios instance with the base URL from the centralized config
 // This allows us to use different URLs for development and production
 const api = axios.create({
-  // Try with IP address instead of localhost
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:5100', 
+  baseURL: apiConfig.API_URL.replace('/api', ''), // Remove '/api' suffix as it's added in endpoints
   timeout: 60000, // 60-second timeout for cold starts
   timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend esté funcionando.'
 });

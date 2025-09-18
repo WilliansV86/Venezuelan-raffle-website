@@ -4,11 +4,13 @@ import axios from 'axios';
 import api from '../services/api'; // Keep the centralized API service
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorAlert from '../components/common/ErrorAlert';
+import apiConfig from '../config/apiConfig';
+
 
 // Define API URL constants with multiple possible backend server URLs
 const API_URLS = [
   '/api',                     // Production/relative path
-  'http://localhost:5100/api', // Most common dev server
+  apiConfig.API_URL.replace("/api", "") + "/api", // Most common dev server
   'http://localhost:5000/api', // Alternative common port
   'http://localhost:3001/api', // Another common API port
   'http://localhost:8080/api'  // Another possibility

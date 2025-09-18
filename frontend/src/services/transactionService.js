@@ -1,6 +1,8 @@
 import axios from 'axios';
+import apiConfig from '../config/apiConfig';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5100/api';
+
+const API_URL = process.env.REACT_APP_API_URL || apiConfig.API_URL.replace("/api", "") + "/api";
 
 const transactionService = {
   /**

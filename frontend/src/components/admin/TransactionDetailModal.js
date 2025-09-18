@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { FaTimes } from 'react-icons/fa';
+import apiConfig from '../../config/apiConfig';
+
 
 const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);

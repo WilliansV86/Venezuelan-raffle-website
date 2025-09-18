@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import apiConfig from '../config/apiConfig';
+
 
 // --- Helper Components ---
 
@@ -144,7 +146,7 @@ const RaffleDetailPage = () => {
     submissionData.append('phone', formData.phone);
 
     try {
-      const response = await axios.post('http://localhost:5100/api/tickets/purchase', submissionData, {
+      const response = await axios.post(apiConfig.endpoints.tickets/purchase, submissionData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import apiConfig from '../config/apiConfig';
+
 
 const FormDebugPage = () => {
   const [formData, setFormData] = useState({
@@ -79,7 +81,7 @@ const FormDebugPage = () => {
       }
       
       // Submit to debug endpoint
-      const result = await axios.post('http://localhost:5100/api/debug-form', submitData, {
+      const result = await axios.post(apiConfig.endpoints.debug-form, submitData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -88,7 +90,7 @@ const FormDebugPage = () => {
       setResponse(result.data);
       
       // Now submit to the actual purchase endpoint
-      const purchaseResponse = await axios.post('http://localhost:5100/api/tickets/purchase', submitData, {
+      const purchaseResponse = await axios.post(apiConfig.endpoints.tickets/purchase, submitData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

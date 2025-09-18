@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import TermsModal from '../common/TermsModal';
 import { ModernProgressBar, PremiumProgressBar, ElegantProgressBar } from '../common/ProgressBarAlternatives';
 import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
+
 
 const RaffleCard = ({ raffle, loading, isPast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,7 +63,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
 
   // Fix image path to point to the correct backend URL
   const imageUrl = raffle.image ? 
-    raffle.image.startsWith('http') ? raffle.image : `http://localhost:5100${raffle.image}` 
+    raffle.image.startsWith('http') ? raffle.image : apiConfig.API_URL.replace("/api", "") + ${raffle.image} 
     : '/images/default-raffle-image.png';
 
   const handleParticipateClick = () => {

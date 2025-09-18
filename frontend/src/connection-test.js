@@ -1,6 +1,7 @@
+import apiConfig from './config/apiConfig';
 // Simple connection test script to verify backend connectivity
 const testBackendConnection = async () => {
-  const url = 'http://localhost:5100/api/health';
+  const url = apiConfig.endpoints.health;
   console.log('Testing backend connection to:', url);
   
   try {

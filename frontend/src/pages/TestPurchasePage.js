@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import apiConfig from '../config/apiConfig';
+
 
 const TestPurchasePage = () => {
   const [formData, setFormData] = useState({
@@ -56,7 +58,7 @@ const TestPurchasePage = () => {
       }
       
       // Direct API call to our test server
-      const response = await axios.post('http://localhost:5100/api/tickets/purchase', submitData, {
+      const response = await axios.post(apiConfig.endpoints.tickets/purchase, submitData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

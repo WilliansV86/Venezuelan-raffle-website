@@ -1,5 +1,7 @@
 // Direct ticket service for emergency bypassing any issues with the regular service
 import axios from 'axios';
+import apiConfig from '../config/apiConfig';
+
 
 const API_BASE_URL = 'http://localhost:5100';
 

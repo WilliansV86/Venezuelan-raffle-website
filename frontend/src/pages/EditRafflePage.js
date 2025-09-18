@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import apiConfig from '../config/apiConfig';
+
 
 const EditRafflePage = () => {
   const { id } = useParams();
@@ -26,7 +28,7 @@ const EditRafflePage = () => {
           return;
         }
 
-        const API_URL = process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5100/api';
+        const API_URL = process.env.NODE_ENV === 'production' ? '/api' : apiConfig.API_URL.replace("/api", "") + "/api";
         const { data } = await axios.get(`${API_URL}/raffles/${id}`, {
           headers: { 'x-admin-key': adminKey }
         });
@@ -64,7 +66,7 @@ const EditRafflePage = () => {
       setError(null);
       setSuccess('');
       const adminKey = localStorage.getItem('admin_key');
-      const API_URL = process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:5100/api';
+      const API_URL = process.env.NODE_ENV === 'production' ? '/api' : apiConfig.API_URL.replace("/api", "") + "/api";
       
       const response = await axios.put(`${API_URL}/raffles/${id}`, formData, {
         headers: { 'x-admin-key': adminKey }
