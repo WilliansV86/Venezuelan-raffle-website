@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Compra - Sorteo Venezolano</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #c00;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #c00;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        button:hover {
+            background-color: #900;
+        }
+        input, select {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .response {
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            margin-top: 10px;
+        }
+        .code-block {
+            background-color: #f8f8f8;
+            border-left: 4px solid #c00;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de Compra - Sorteo Venezolano</h1>
+    
+    <div class="container">
+        <div class="test-section">
+            <h3>1. Verificar que el servidor esté funcionando</h3>
+            <p>Primero, verifica que tu servidor API esté activo y funcionando correctamente:</p>
+            <button id="checkHealth">Verificar Salud del Servidor</button>
+            <div id="healthResponse" class="response">El resultado aparecerá aquí...</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. Prueba de comando PowerShell</h3>
+            <p>Copia y ejecuta este comando en PowerShell para probar directamente el API:</p>
+            <div class="code-block">
+                Invoke-RestMethod -Uri 'http://localhost:5001/api/health/ping' -Method Get
+            </div>
+            <p>Si el servidor está funcionando, deberías ver una respuesta similar a:</p>
+            <div class="code-block">
+                status message<br>
+                ------ -------<br>
+                ok     pong
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. Prueba de Compra con PowerShell</h3>
+            <p>Para una prueba completa de compra, ejecuta este script en PowerShell:</p>
+            <pre>
+$ticketPrice = 1.5    # Precio por ticket en USD
+$ticketQuantity = 10  # Número de tickets
+$totalAmount = $ticketPrice * $ticketQuantity * 100  # Convertir a centavos
+
+$purchaseData = @{
+    fullName = "Usuario de Prueba"
+    email = "test@example.com"
+    whatsappNumber = "+1234567890"
+    identificationNumber = "V-12345678"
+    paymentAmount = $totalAmount
+    paymentMethod = "Zelle"
+    paymentReference = "TEST123456"
+    raffleId = "649ab8f45cbb0d3f084c57a1"
+    quantity = $ticketQuantity
+}
+
+$jsonBody = $purchaseData | ConvertTo-Json
+
+Write-Host "Enviando solicitud de compra..."
+Write-Host "Precio por ticket: $${ticketPrice}"
+Write-Host "Cantidad: ${ticketQuantity}"
+Write-Host "Total: $${ticketPrice * $ticketQuantity} (${totalAmount} centavos)"
+
+try {
+    $response = Invoke-RestMethod -Uri "http://localhost:5001/api/tickets/purchase" -Method Post -Body $jsonBody -ContentType "application/json"
+    Write-Host "Respuesta exitosa:" -ForegroundColor Green
+    $response | ConvertTo-Json -Depth 3
+} catch {
+    Write-Host "Error:" -ForegroundColor Red
+    Write-Host $_.Exception.Message
+    if ($_.ErrorDetails.Message) {
+        $_.ErrorDetails.Message
+    }
+}
+            </pre>
+            <p><strong>Nota:</strong> Esta prueba no incluye la carga de la imagen de comprobante de pago porque es más complejo de hacer con PowerShell. Puedes implementar esa parte más adelante.</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. Prueba rápida de formulario (sin subir imagen)</h3>
+            <form id="quickTestForm">
+                <div>
+                    <label for="fullName">Nombre completo:</label>
+                    <input type="text" id="fullName" value="Usuario de Prueba" required>
+                </div>
+                <div>
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" value="test@example.com" required>
+                </div>
+                <div>
+                    <label for="whatsappNumber">Número de WhatsApp:</label>
+                    <input type="text" id="whatsappNumber" value="+1234567890" required>
+                </div>
+                <div>
+                    <label for="identificationNumber">Número de identificación:</label>
+                    <input type="text" id="identificationNumber" value="V-12345678" required>
+                </div>
+                <div>
+                    <label for="quantity">Cantidad de boletos:</label>
+                    <input type="number" id="quantity" value="10" min="1" required>
+                </div>
+                <div>
+                    <label for="paymentMethod">Método de pago:</label>
+                    <select id="paymentMethod" required>
+                        <option value="Zelle">Zelle</option>
+                        <option value="Binance">Binance</option>
+                        <option value="PayPal">PayPal</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="paymentReference">Referencia de pago:</label>
+                    <input type="text" id="paymentReference" value="TEST123456" required>
+                </div>
+                <div>
+                    <label for="raffleId">ID del sorteo:</label>
+                    <input type="text" id="raffleId" value="649ab8f45cbb0d3f084c57a1" required>
+                </div>
+                <button type="submit">Probar Compra</button>
+            </form>
+            <div id="testResponse" class="response">El resultado aparecerá aquí...</div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('checkHealth').addEventListener('click', async () => {
+            const responseEl = document.getElementById('healthResponse');
+            responseEl.textContent = 'Verificando...';
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/health');
+                const data = await response.json();
+                responseEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseEl.textContent = `Error: ${error.message}\n\nAsegúrate de que el servidor esté corriendo en http://localhost:5001`;
+            }
+        });
+        
+        document.getElementById('quickTestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const responseEl = document.getElementById('testResponse');
+            responseEl.textContent = 'Enviando prueba de compra...';
+            
+            // Calcular monto de pago
+            const ticketPrice = 1.5; // USD por boleto
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const totalAmount = Math.round(ticketPrice * quantity * 100); // Convertir a centavos
+            
+            const purchaseData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                whatsappNumber: document.getElementById('whatsappNumber').value,
+                identificationNumber: document.getElementById('identificationNumber').value,
+                quantity: quantity,
+                paymentAmount: totalAmount,
+                paymentMethod: document.getElementById('paymentMethod').value,
+                paymentReference: document.getElementById('paymentReference').value,
+                raffleId: document.getElementById('raffleId').value
+            };
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/tickets/purchase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(purchaseData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`${response.status}: ${errorData.message || 'Error desconocido'}`); 
+                }
+                
+                const data = await response.json();
+                responseEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseEl.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+
+[36m===== Starting Email Diagnostics =====[0m
+[34m[INFO][0m Time: 2025-09-05T07:46:52.239Z
+[34m[INFO][0m Working Directory: C:\Users\WParedes\Desktop\Venezuelan-raffle-website\backend
+
+[36m===== Environment Variables Check =====[0m
+[34m[INFO][0m Node.js Version: v22.17.0
+[34m[INFO][0m Checking for .env files:
+[32m[SUCCESS][0m Found: .env
+[32m[SUCCESS][0m Found: .env.example
+[32m[SUCCESS][0m Found: .env.fixed
+[32m[SUCCESS][0m Found: .env.new
+[34m[INFO][0m Checking required environment variables:
+[32m[SUCCESS][0m EMAIL_HOST: smtp.sendgrid.net
+[32m[SUCCESS][0m EMAIL_PORT: 587
+[32m[SUCCESS][0m EMAIL_USER: tusuerteestaaquive@gmail.com
+[32m[SUCCESS][0m EMAIL_PASS: ********
+[32m[SUCCESS][0m EMAIL_FROM: Tu Suerte Está Aquí <tusuerteestaquive@gmail.com>
+[42m[RESULT: PASS][0m
+
+[36m===== SendGrid Configuration Validation =====[0m
+[32m[SUCCESS][0m Email host is correctly set to SendGrid SMTP server
+[32m[SUCCESS][0m Email port is correctly set to 587
+[33m[WARNING][0m For SendGrid, EMAIL_USER should be set to "apikey"
+[32m[SUCCESS][0m EMAIL_PASS appears to be a valid SendGrid API key
+[42m[RESULT: PASS][0m
+
+[36m===== Email Sending Test =====[0m
+[34m[INFO][0m Creating transporter with configuration:
+{
+  "host": "smtp.sendgrid.net",
+  "port": 587,
+  "secure": false,
+  "auth": {
+    "user": "tusuerteestaaquive@gmail.com",
+    "pass": "********"
+  }
+}
+[34m[INFO][0m Verifying transporter...
+[31m[ERROR][0m Failed to send test email
+[31m[ERROR][0m Error: Greeting never received
+[31m[ERROR][0m Error Code: ETIMEDOUT
+[41m[RESULT: FAIL][0m
+
+[36m===== Diagnostic Summary =====[0m
+[34m[INFO][0m Environment Check: [32mPASS[0m
+[34m[INFO][0m Config Validation: [32mPASS[0m
+[34m[INFO][0m Email Send Test: [31mFAIL[0m
+[33m[WARNING][0m Some issues were detected with the email configuration or sending.
+[34m[INFO][0m Email diagnostics completed

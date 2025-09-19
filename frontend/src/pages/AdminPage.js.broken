@@ -1,0 +1,1158 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorAlert from '../components/common/ErrorAlert';
+
+// Define API URL constants with multiple possible backend server URLs
+const API_URLS = [
+  'http://localhost:5100/api', // Current active backend server (confirmed in logs)
+  '/api',                     // Production/relative path
+  'http://localhost:5000/api', // Alternative common port
+  'http://localhost:3001/api', // Another common API port
+  'http://localhost:8080/api'  // Another possibility
+];
+
+// Function to find a working API URL
+const findWorkingApiUrl = async (testEndpoint = '/health') => {
+  for (const url of API_URLS) {
+    try {
+      // Try a simple test endpoint
+      await axios.get(`${url}${testEndpoint}`); 
+      console.log(`Found working API URL: ${url}`);
+      return url;
+    } catch (err) {
+      console.warn(`API URL ${url} failed health check`);
+      // Continue to next URL
+    }
+  }
+  
+  // If we reach here, no URLs worked with the test endpoint
+  // Let's try the first URL anyway as our best guess
+  return API_URLS[0];
+};
+
+const AdminPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [adminKey, setAdminKey] = useState(localStorage.getItem('admin_key') || '');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
+
+  const [raffles, setRaffles] = useState([]);
+  const [raffleError, setRaffleError] = useState(null);
+  const [raffleLoading, setRaffleLoading] = useState(false);
+  
+  // Check if we should show raffle manager based on navigation state
+  const [showRaffleManager, setShowRaffleManager] = useState(
+    location.state?.showRaffles || false
+  );
+
+  const [rafflesForManager, setRafflesForManager] = useState({
+    active: null,
+    previous: null,
+    others: []
+  });
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState(null);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [usingDevMode, setUsingDevMode] = useState(localStorage.getItem('dev_mode') === 'true');
+  
+  // Variable to store working API URL once found
+  const [workingApiUrl, setWorkingApiUrl] = useState(API_URLS[0]);
+
+  // Check if adminKey exists in localStorage or navigation state
+  useEffect(() => {
+    // Check if we received authentication via navigation state
+    if (location.state?.authenticated) {
+      const stateAdminKey = location.state?.adminKey || localStorage.getItem('admin_key');
+      if (stateAdminKey) {
+        setAdminKey(stateAdminKey);
+        setAuthenticated(true);
+        // Store the key in localStorage for future use
+        localStorage.setItem('admin_key', stateAdminKey);
+      }
+    } else {
+      // Default behavior - check localStorage
+      const savedKey = localStorage.getItem('admin_key');
+      if (savedKey) {
+        setAdminKey(savedKey);
+        setAuthenticated(true);
+      }
+    }
+  }, [location.state]);
+
+  // Effect for initial data loading once authenticated
+  useEffect(() => {
+    if (authenticated) {
+      (async () => {
+        try {
+          // Find a working API URL first
+          const apiUrl = await findWorkingApiUrl();
+          setWorkingApiUrl(apiUrl);
+          
+          // Then fetch data using that URL
+          await fetchTransactions(adminKey, apiUrl);
+          await fetchRafflesForManager(apiUrl);
+        } catch (err) {
+          console.error('Failed to initialize data:', err);
+          setError('Error al cargar datos iniciales');
+        }
+      })();
+    }
+  }, [authenticated]);
+  
+  // Reusable API call function with admin authentication
+  const callAdminAPI = async (endpoint, method = 'GET', data = null, customHeaders = {}, apiUrl = API_URLS[0]) => {
+    const key = localStorage.getItem('admin_key');
+    if (!key) {
+      throw new Error('Admin key not found. Please log in again.');
+    }
+
+    try {
+      console.log(`🔄 API Call: ${method} ${apiUrl}${endpoint}`);
+      
+      const config = {
+        method,
+        url: `${apiUrl}${endpoint}`,
+        headers: {
+          'x-admin-key': key,
+          ...customHeaders
+        },
+        ...(data && { data })
+      };
+      
+      const response = await axios(config);
+      console.log(`✅ API Response:`, response);
+      return response.data;
+    } catch (err) {
+      console.error(`❌ API Error for ${endpoint}:`, err);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('admin_key');
+        setAuthenticated(false);
+      }
+      throw err;
+    }
+  };
+
+  const fetchTransactions = async (key, apiUrl = API_URLS[0]) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log(`🔄 Fetching transactions from ${apiUrl}/admin/transactions`);
+
+      const adminKey = key || localStorage.getItem('admin_key');
+      
+      if (!adminKey) {
+        setError('Admin key not found. Please log in again.');
+        setLoading(false);
+        return;
+      }
+      
+      let response;
+      let success = false;
+      
+      // Try different API endpoints and auth header combinations
+      const endpoints = [
+        `${apiUrl}/admin/transactions`,
+        `${apiUrl}/transactions/admin`,
+        `${apiUrl}/transactions`
+      ];
+      
+      const headerVariations = [
+        { 'x-admin-key': adminKey },
+        { 'X-Admin-Key': adminKey },
+        { 'authorization': `Bearer ${adminKey}` },
+        { 'Authorization': `Bearer ${adminKey}` },
+        { 'x-admin-key': adminKey, 'Authorization': `Bearer ${adminKey}` }
+      ];
+      
+      // Try each endpoint with each header variation
+      for (const endpoint of endpoints) {
+        if (success) break;
+        
+        for (const headers of headerVariations) {
+          try {
+            console.log(`Trying endpoint: ${endpoint} with headers:`, headers);
+            response = await axios.get(endpoint, { headers });
+            
+            if (response && response.data) {
+              console.log('✅ Transaction data received:', response.data);
+              success = true;
+              break;
+            }
+          } catch (innerErr) {
+            console.warn(`Auth attempt failed for ${endpoint}:`, innerErr.message);
+          }
+        }
+      }
+      
+      if (!success) {
+        console.error('All transaction endpoint attempts failed');
+        setError('Error al obtener transacciones: No se pudo autenticar con el backend');
+        setTransactions([]);
+        return;
+      }
+      
+      // Process the response data
+      if (Array.isArray(response.data)) {
+        setTransactions(response.data);
+      } else if (response.data && Array.isArray(response.data.transactions)) {
+        setTransactions(response.data.transactions);
+      } else {
+        console.warn('Transaction data format not recognized:', response.data);
+        setTransactions([]);
+      }
+    } catch (err) {
+      console.error('❌ Failed to fetch transactions:', err);
+      setError('Error al obtener transacciones: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get mock raffles for development mode
+  const getMockRaffles = () => {
+    return [
+      {
+        _id: 'mock-raffle-1',
+        name: 'Gran Regreso a Clases',
+        status: 'active',
+        price: 1.5,
+        priceBS: 300,
+        maxTickets: 10000,
+        soldTickets: 5432,
+        imageUrl: '/images/default-raffle-image.png',
+        description: 'Rifa para el regreso a clases',
+        endDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        drawDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        _id: 'mock-raffle-2',
+        name: 'Rifa de Navidad',
+        status: 'inactive',
+        price: 2,
+        priceBS: 500,
+        maxTickets: 5000,
+        soldTickets: 0,
+        imageUrl: '/images/default-raffle-image.png',
+        description: 'Rifa especial de Navidad',
+        endDate: new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        drawDate: new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        _id: 'mock-raffle-3',
+        name: 'Rifa de Año Nuevo',
+        status: 'completed',
+        price: 3,
+        priceBS: 750,
+        maxTickets: 3000,
+        soldTickets: 3000,
+        imageUrl: '/images/default-raffle-image.png',
+        description: 'Celebra el año nuevo con esta rifa',
+        endDate: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      }
+    ];
+  };
+
+  // Toggle dev mode (for testing without backend)
+  const toggleDevMode = () => {
+    const newDevMode = !usingDevMode;
+    setUsingDevMode(newDevMode);
+    localStorage.setItem('devMode', newDevMode ? 'true' : 'false');
+    console.log(`Dev mode ${newDevMode ? 'enabled' : 'disabled'}`);
+    
+    // Refresh raffles when toggling dev mode
+    fetchRafflesForManager(adminKey);
+  };
+  
+  // Fetch raffles for raffle manager UI
+  const fetchRafflesForManager = async (adminKey) => {
+    setStatusLoading(true);
+    setStatusError('');
+    
+    try {
+      // Check if dev mode is enabled
+      if (usingDevMode) {
+        console.log('🔧 Using development mode with mock data');
+        
+        // Get mock data
+        const mockRaffles = getMockRaffles();
+        
+        // Set raffles
+        setRafflesForManager({
+          active: mockRaffles.find(r => r.status === 'active'),
+          previous: mockRaffles.find(r => r.status === 'completed'),
+          others: mockRaffles.filter(r => r.status !== 'active' && r.status !== 'completed'),
+          allRaffles: mockRaffles
+        });
+        
+        setStatusLoading(false);
+        return;
+      }
+      
+      // Regular API call if not in dev mode
+      const response = await axios.get(`${API_URL}/api/raffles`, {
+        headers: { 'x-admin-key': adminKey }
+      });
+      
+      let data = null;
+      
+      if (response.data && Array.isArray(response.data.raffles)) {
+        data = response.data.raffles;
+      } else if (Array.isArray(response.data)) {
+        data = response.data;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('✅ Found raffles:', data.length);
+        
+        // Set raffles in state
+        setRafflesForManager({
+          active: data.find(r => r.status === 'active'),
+          previous: data.find(r => r.status === 'completed'),
+          others: data.filter(r => r.status !== 'active' && r.status !== 'completed'),
+          allRaffles: data
+        });
+      } else {
+        throw new Error('No raffles found in response');
+                imageUrl: '/images/default-raffle-image.png',
+                description: 'Rifa para el regreso a clases',
+                drawDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+              },
+              {
+                _id: 'mock-raffle-2',
+                name: 'Rifa de Navidad',
+                status: 'inactive',
+                price: 2,
+                priceBS: 500,
+                maxTickets: 5000,
+                soldTickets: 0,
+                imageUrl: '/images/default-raffle-image.png',
+                description: 'Rifa especial de Navidad',
+                drawDate: new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000).toISOString()
+              },
+              {
+                _id: 'mock-raffle-3',
+                name: 'Rifa de Año Nuevo',
+                status: 'completed',
+                price: 3,
+                priceBS: 750,
+                maxTickets: 3000,
+                soldTickets: 3000,
+                imageUrl: '/images/default-raffle-image.png',
+                description: 'Celebra el año nuevo con esta rifa',
+                drawDate: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+                endDate: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+              }
+            ];
+          };
+
+          // Use the getMockRaffles function
+          const mockRaffles = getMockRaffles();
+          
+          // Set active, previous, and other raffles
+          setRafflesForManager({
+            active: mockRaffles.find(r => r.status === 'active'),
+            previous: mockRaffles.find(r => r.status === 'completed'),
+            others: mockRaffles.filter(r => r.status !== 'active' && r.status !== 'completed'),
+            allRaffles: mockRaffles
+          });
+          
+          setStatusLoading(false);
+          setStatusError('Usando datos de prueba. Posible problema de conexión con MongoDB.');
+          return; // Return here to prevent further execution
+        }
+        return; // Return here too if dev_mode was already set but raffles couldn't be loaded
+      } else {
+        console.log('🔍 Processing', rafflesArray.length, 'raffles...');
+        
+        // Now process the raffles we found
+        const activeRaffle = rafflesArray.find(raffle => 
+          raffle.status === 'active' || raffle.status === 'activa'
+        );
+        
+        const completedRaffles = rafflesArray.filter(raffle => 
+          raffle.status === 'completed' || raffle.status === 'completada'
+        );
+        
+        const otherRaffles = rafflesArray.filter(raffle => 
+          (raffle.status !== 'active' && raffle.status !== 'activa') && 
+          (raffle.status !== 'completed' && raffle.status !== 'completada')
+        );
+        
+        console.log('🎟️ Active raffle:', activeRaffle);
+        console.log('🎁 Completed raffles:', completedRaffles.length);
+        console.log('📓 Other raffles:', otherRaffles.length);
+        
+        // Set the state with our raffle data
+        setRafflesForManager({
+          active: activeRaffle || null,
+          previous: completedRaffles.length > 0 ? completedRaffles[0] : null,
+          others: otherRaffles,
+          allRaffles: rafflesArray
+        });
+      }
+      
+      if (rafflesArray.length === 0) {
+        console.warn('No raffles found in any API responses');
+      }
+      
+      // Categorize raffles by status as described in our application requirements
+      const activeRaffles = rafflesArray.filter(raffle => raffle.status === 'active');
+      const previousRaffles = rafflesArray.filter(raffle => raffle.status === 'completed');
+      const otherRaffles = rafflesArray.filter(
+        raffle => raffle.status !== 'active' && raffle.status !== 'completed'
+      );
+
+      console.log('Active raffles:', activeRaffles);
+      console.log('Previous raffles:', previousRaffles);
+      console.log('Other raffles:', otherRaffles);
+
+      setRafflesForManager({
+        active: activeRaffles.length > 0 ? activeRaffles[0] : null,
+        previous: previousRaffles.length > 0 ? previousRaffles[0] : null,
+        others: otherRaffles,
+        allRaffles: rafflesArray
+      });
+      // Final cleanup
+      setStatusLoading(false);
+    } catch (err) {
+      console.error('Error fetching raffles for manager:', err);
+      setStatusError('Error al cargar las rifas: ' + err.message);
+      setStatusLoading(false);
+    }
+  };
+
+  const fetchRaffles = async (key, apiUrl = API_URLS[0]) => {
+    try {
+      setRaffleLoading(true);
+      setRaffleError(null);
+      
+      console.log(`🔎 Fetching admin raffles from ${apiUrl}/raffles/admin/all`);
+      
+      try {
+        const response = await axios.get(`${apiUrl}/raffles/admin/all`, {
+          headers: { 'x-admin-key': key }
+        });
+        
+        console.log('✅ Admin raffles response:', response.data);
+        
+        if (response.data && response.data.success) {
+          setRaffles(response.data.data);
+        } else if (Array.isArray(response.data)) {
+          setRaffles(response.data);
+        } else if (response.data && Array.isArray(response.data.raffles)) {
+          setRaffles(response.data.raffles);
+        } else {
+          console.warn('Unexpected format for admin raffles');
+          setRaffleError('Formato de respuesta inesperado');
+        }
+      } catch (error) {
+        console.warn(`⚠️ Admin/all endpoint failed: ${error.message}`);
+        
+        // Try fallback to just /raffles endpoint
+        try {
+          console.log(`🔎 Trying fallback to ${apiUrl}/raffles`);
+          const fallbackResponse = await axios.get(`${apiUrl}/raffles`, {
+            headers: { 'x-admin-key': key }
+          });
+          
+          if (Array.isArray(fallbackResponse.data)) {
+            setRaffles(fallbackResponse.data);
+          } else if (fallbackResponse.data && Array.isArray(fallbackResponse.data.data)) {
+            setRaffles(fallbackResponse.data.data);
+          } else {
+            setRaffleError('No se pudieron cargar las rifas');
+          }
+        } catch (fallbackError) {
+          console.error('❌ Both raffle endpoints failed');
+          setRaffleError('Error al cargar las rifas: ' + error.message);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Unhandled error in fetchRaffles:', err);
+      setRaffleError(err.message || 'Error al obtener rifas');
+    } finally {
+      setRaffleLoading(false);
+    }
+  };
+
+  const processEmails = async () => {
+    try {
+      const response = await callAdminAPI('/admin/process-emails', 'POST');
+      console.log(response);
+      alert('Emails processed successfully');
+    } catch (err) {
+      console.error(err);
+      alert('Error processing emails');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_key');
+    setAuthenticated(false);
+    setAdminKey('');
+  };
+
+  const handlePromoteRaffle = async (raffleId) => {
+    try {
+      setStatusLoading(true);
+      setUpdateSuccess(false);
+      
+      const response = await callAdminAPI(`/raffles/${raffleId}/status`, 'PUT', {
+        status: 'active'
+      });
+      
+      if (response.success) {
+        setUpdateSuccess(true);
+        await fetchRafflesForManager();
+      } else {
+        setStatusError('Error promoting raffle');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusError(err.message || 'Error updating raffle status');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const handleDemoteActiveRaffle = async () => {
+    try {
+      if (!rafflesForManager.active || !rafflesForManager.active._id) {
+        setStatusError('No active raffle found');
+        return;
+      }
+      
+      // Log the raffle details for debugging
+      console.log('Attempting to demote active raffle:', rafflesForManager.active);
+      
+      // Create a temporary alert to show action without actually calling API
+      const raffleName = rafflesForManager.active.name || 
+                        rafflesForManager.active.title || 
+                        'Rifa Activa';
+      
+      const confirmed = window.confirm(
+        `¿Estás seguro que quieres cambiar el estado de "${raffleName}" a inactivo?\n\n` +
+        `(Nota: Esta función está en desarrollo. Por ahora, solo se simula el cambio.)`
+      );
+      
+      if (confirmed) {
+        setStatusLoading(true);
+        
+        // Simulate API call delay
+        setTimeout(() => {
+          console.log('Simulating successful status update for raffle:', rafflesForManager.active._id);
+          
+          // Show success message
+          setUpdateSuccess(true);
+          
+          // Simulate updated data
+          const updatedRaffles = { ...rafflesForManager };
+          
+          // Move active raffle to others array
+          if (updatedRaffles.active) {
+            const demotedRaffle = { ...updatedRaffles.active, status: 'inactive' };
+            updatedRaffles.others = [...(updatedRaffles.others || []), demotedRaffle];
+            updatedRaffles.active = null;
+          }
+          
+          // Update state with simulated changes
+          setRafflesForManager(updatedRaffles);
+          setStatusLoading(false);
+          
+          // Inform user about next steps
+          setTimeout(() => {
+            alert('Para implementar esta funcionalidad completamente, es necesario configurar el endpoint correcto en el backend para actualizar el estado de las rifas.');
+          }, 1000);
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('Error in handleDemoteActiveRaffle:', err);
+      setStatusError(err.message || 'Error al actualizar estado de la rifa');
+      setStatusLoading(false);
+    }
+  };
+
+  const handleSwapPositions = async (raffleId, direction) => {
+    try {
+      setStatusLoading(true);
+      
+      await callAdminAPI(`/raffles/${raffleId}/position`, 'PUT', {
+        direction // 'up' or 'down'
+      });
+      
+      await fetchRafflesForManager();
+    } catch (err) {
+      console.error(err);
+      setStatusError('Error updating raffle position');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const handleEditRaffle = (raffle) => {
+    try {
+      console.log('Editing raffle:', raffle);
+      
+      // Log all properties to debug what's available
+      console.log('Raffle properties:', Object.keys(raffle));
+      
+      if (!raffle || !raffle._id) {
+        alert('Error: La rifa no tiene un ID válido');
+        return;
+      }
+      
+      // Navigate to the edit page with the raffle ID
+      console.log('Navigating to edit page for raffle ID:', raffle._id);
+      navigate(`/admin/raffles/edit/${raffle._id}`);
+    } catch (err) {
+      console.error('Error handling raffle edit:', err);
+      alert('Ha ocurrido un error al intentar editar la rifa');
+    }
+  };
+
+  const openTransactionDetails = (transaction) => {
+    setSelectedTransaction(transaction);
+  };
+
+  const closeTransactionDetails = () => {
+    setSelectedTransaction(null);
+  };
+
+  const updateTransactionStatus = async (id, status, notes) => {
+    try {
+      const response = await callAdminAPI(`/admin/transactions/${id}/status`, 'PUT', {
+        status,
+        adminNotes: notes
+      });
+      
+      if (response.success) {
+        setTransactions(transactions.map(t => 
+          t._id === id ? { ...t, status, adminNotes: notes } : t
+        ));
+        setSelectedTransaction(null);
+      } else {
+        throw new Error('Failed to update transaction status');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error updating transaction: ' + err.message);
+    }
+  };
+
+  // Handle login submit
+  const handleAdminLogin = async (e) => {
+    // Prevent default form submission behavior
+    if (e) e.preventDefault();
+    
+    try {
+      setError(null);
+      
+      if (!adminKey) {
+        setError('Admin Key es requerida');
+        return;
+      }
+      
+      // DEVELOPMENT MODE - Disabled for proper backend testing
+      const devMode = false; // Set to true for development testing, false for production
+      
+      if (devMode) {
+        console.log('⚠️ USING DEVELOPMENT MODE - bypassing authentication');
+        localStorage.setItem('admin_key', adminKey);
+        localStorage.setItem('dev_mode', 'true');
+        setAuthenticated(true);
+        return;
+      }
+      
+      // NORMAL AUTHENTICATION FLOW
+      console.log('Attempting admin authentication');
+      const workingUrl = await findWorkingApiUrl();
+      console.log('Using API URL:', workingUrl);
+      
+      // Track if any endpoint attempt was made
+      let endpointAttempted = false;
+      let backendIsRunning = false;
+      
+      try {
+        // First, check if backend is available at all
+        try {
+          const timeout = 2000; // 2 seconds timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          
+          await axios.get(`${workingUrl}/health`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          
+          backendIsRunning = true;
+          console.log('Backend health check passed');
+        } catch (healthErr) {
+          console.warn('Backend health check failed:', healthErr);
+          
+          // Immediately offer development bypass if health check fails
+          const devBypass = window.confirm(
+            'No se pudo conectar con el backend. ¿Quieres habilitar el modo desarrollo para pruebas de UI?' +
+            '\n\nEsto sólo es para pruebas y no funcionará con APIs reales.'
+          );
+          
+          if (devBypass) {
+            console.log('Using development bypass for testing');
+            localStorage.setItem('admin_key', adminKey);
+            localStorage.setItem('dev_mode', 'true');
+            setAuthenticated(true);
+            return;
+          }
+        }
+        
+        if (!backendIsRunning) {
+          setError('El servidor backend no está respondiendo. Por favor, verifica que esté ejecutándose.');
+          return;
+        }
+        
+        // Attempt to verify admin key with server
+        endpointAttempted = true;
+        await axios.post(`${workingUrl}/admin/verify`, {}, {
+          headers: {
+            'x-admin-key': adminKey
+          }
+        });
+        
+        // If verification succeeds, proceed
+        localStorage.setItem('admin_key', adminKey);
+        setAuthenticated(true);
+      } catch (apiError) {
+        console.warn('First auth endpoint failed:', apiError);
+        
+        // If that fails, try another endpoint
+        try {
+          endpointAttempted = true;
+          await axios.get(`${workingUrl}/admin/raffles`, {
+            headers: {
+              'x-admin-key': adminKey
+            }
+          });
+          
+          // If we get here, admin key worked
+          localStorage.setItem('admin_key', adminKey);
+          setAuthenticated(true);
+        } catch (e) {
+          console.error('Admin authentication failed with all endpoints', e);
+          setError('No se pudo verificar la clave de administrador. La clave puede ser incorrecta o no tienes permisos.');
+        }
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Error al iniciar sesión: ' + err.message);
+    }
+  };
+
+  // Render login screen if not authenticated
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-[#0a0f1a] flex items-center justify-center">
+        <div className="bg-[#111827] p-8 rounded-lg shadow-lg w-full max-w-md border border-blue-900">
+          <h1 className="text-2xl font-bold text-yellow-400 mb-6 text-center">Admin Login</h1>
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-gray-300 mb-2">Admin Key</label>
+              <input
+                type="password"
+                value={adminKey}
+                onChange={(e) => setAdminKey(e.target.value)}
+                className="w-full bg-[#1e293b] text-white border border-blue-800 rounded p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter admin key"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-blue-800 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Login
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Main admin panel layout
+  return (
+    <div className="container mx-auto px-4 py-8 bg-blue-950 min-h-screen">
+      <div className="bg-[#111827] rounded-lg shadow-lg p-6 mb-8 border border-blue-900">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-yellow-400 text-2xl font-bold">Panel Administrativo</h1>
+            <button 
+              onClick={toggleDevMode}
+              className={`px-2 py-1 text-xs rounded-md ${usingDevMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-600 hover:bg-gray-700'} text-white border ${usingDevMode ? 'border-yellow-500' : 'border-gray-500'}`}
+              title="Activa el modo prueba para ver datos de ejemplo cuando la conexión MongoDB falla"
+            >
+              {usingDevMode ? '🧪 Modo Prueba: ON' : '🔌 Modo Prueba: OFF'}
+            </button>
+          </div>
+        </div>
+        
+        {/* Status Indicator */}
+        {statusLoading && (
+          <div className="mb-4 flex items-center">
+            <div className="animate-spin mr-2 h-5 w-5 text-blue-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <span className="text-blue-400">Cargando datos...</span>
+          </div>
+        )}
+        
+        {statusError && (
+          <div className="mb-4 bg-red-900 border-l-4 border-red-500 text-red-100 p-4 rounded">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{statusError}</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Button Row with improved styling */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <button
+            onClick={() => setShowRaffleManager(!showRaffleManager)}
+            className="bg-blue-800 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50"
+            disabled={statusLoading}
+          >
+            {showRaffleManager ? 'Mostrar Transacciones' : 'Gestionar Rifas'}
+          </button>
+          <button 
+            onClick={processEmails}
+            className="bg-green-700 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 disabled:opacity-50"
+            disabled={statusLoading}
+          >
+            Procesar Emails Pendientes
+          </button>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      {showRaffleManager ? (
+        <div className="space-y-6">
+          {statusLoading ? (
+            <div className="text-center py-12 bg-gray-800/60 rounded-lg shadow-lg">
+              <LoadingSpinner />
+              <p className="mt-4 text-gray-400 animate-pulse">Cargando gestión de rifas...</p>
+            </div>
+          ) : statusError && !usingDevMode ? (
+            <div className="bg-red-900/30 border border-red-800 rounded-lg p-6 mb-6 text-red-200 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {statusError}
+              <button 
+                onClick={toggleDevMode}
+                className="ml-4 px-3 py-1 bg-yellow-600 text-white rounded-md text-sm border border-yellow-500 hover:bg-yellow-700"
+              >
+                Activar Modo Prueba
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {updateSuccess && (
+                <div className="bg-green-900/30 border border-green-800 rounded-lg p-6 mb-6 text-green-200 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  ¡Status actualizado con éxito!
+                </div>
+              )}
+
+              {/* Raffle Manager UI */}
+              <div className="space-y-8">
+                {/* Active Raffle Section */}
+                <div className="bg-[#111827] rounded-lg shadow-lg p-6 border border-blue-900">
+                  <h3 className="text-xl text-yellow-400 font-bold mb-4 border-b border-gray-700 pb-2">Rifa Activa</h3>
+                  
+                  {rafflesForManager.active ? (
+                    <div className="bg-[#1e293b] rounded-lg p-4 border border-blue-800">
+                      <div className="flex flex-col md:flex-row gap-4">
+                        <div className="md:w-1/3">
+                          <img 
+                            src={rafflesForManager.active.imageUrl || '/images/default-raffle-image.png'} 
+                            alt={rafflesForManager.active.name}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                        </div>
+                        <div className="md:w-2/3 space-y-2">
+                          <h4 className="text-lg font-bold text-blue-300">{rafflesForManager.active.name}</h4>
+                          <p className="text-sm text-gray-300">{rafflesForManager.active.description}</p>
+                          <div className="flex gap-2 text-sm">
+                            <span className="bg-green-900/50 text-green-200 px-2 py-1 rounded">
+                              Precio: ${rafflesForManager.active.price}
+                            </span>
+                            <span className="bg-blue-900/50 text-blue-200 px-2 py-1 rounded">
+                              Fecha de Sorteo: {new Date(rafflesForManager.active.drawDate).toLocaleDateString('es-VE')}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 mt-4">
+                            <button 
+                              onClick={() => handleEditRaffle(rafflesForManager.active)}
+                              className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1 rounded transition duration-200 text-sm flex items-center border border-blue-700"
+                            >
+                              Editar
+                            </button>
+                            <button 
+                              onClick={() => handleDemoteActiveRaffle()}
+                              className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded transition duration-200 text-sm flex items-center border border-gray-600"
+                            >
+                              Cambiar a Inactivo
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-[#1a2234] rounded-lg border border-blue-900/50">
+                      <p className="text-gray-400">No hay rifa activa actualmente</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Previous Raffle Section */}
+                <div className="bg-[#111827] rounded-lg shadow-lg p-6 border border-blue-900">
+                  <h3 className="text-xl text-yellow-400 font-bold mb-4 border-b border-gray-700 pb-2">Rifa Anterior</h3>
+                  
+                  {rafflesForManager.previous ? (
+                    <div className="bg-[#1e293b] rounded-lg p-4 border border-blue-800">
+                      <div className="flex flex-col md:flex-row gap-4">
+                        <div className="md:w-1/3">
+                          <img 
+                            src={rafflesForManager.previous.imageUrl || '/images/default-raffle-image.png'} 
+                            alt={rafflesForManager.previous.name}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                        </div>
+                        <div className="md:w-2/3 space-y-2">
+                          <h4 className="text-lg font-bold text-purple-300">{rafflesForManager.previous.name}</h4>
+                          <p className="text-sm text-gray-300">{rafflesForManager.previous.description}</p>
+                          <div className="flex gap-2 text-sm">
+                            <span className="bg-green-900/50 text-green-200 px-2 py-1 rounded">
+                              Precio: ${rafflesForManager.previous.price}
+                            </span>
+                            <span className="bg-purple-900/50 text-purple-200 px-2 py-1 rounded">
+                              Sorteado el: {new Date(rafflesForManager.previous.drawDate).toLocaleDateString('es-VE')}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 mt-4">
+                            <button 
+                              onClick={() => handleEditRaffle(rafflesForManager.previous)}
+                              className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1 rounded transition duration-200 text-sm flex items-center border border-blue-700"
+                            >
+                              Editar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-[#1a2234] rounded-lg border border-blue-900/50">
+                      <p className="text-gray-400">No hay rifas anteriores</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Other Raffles Section */}
+                <div className="bg-[#111827] rounded-lg shadow-lg p-6 border border-blue-900">
+                  <h3 className="text-xl text-yellow-400 font-bold mb-4 border-b border-gray-700 pb-2">Otras Rifas</h3>
+                  
+                  {rafflesForManager.others && rafflesForManager.others.length > 0 ? (
+                    <div className="space-y-4">
+                      {rafflesForManager.others.map((raffle) => (
+                        <div key={raffle._id} className="bg-[#1e293b] rounded-lg p-4 border border-blue-800">
+                          <div className="flex flex-col md:flex-row gap-4">
+                            <div className="md:w-1/4">
+                              <img 
+                                src={raffle.imageUrl || '/images/default-raffle-image.png'} 
+                                alt={raffle.name}
+                                className="w-full h-32 object-cover rounded-lg"
+                              />
+                            </div>
+                            <div className="md:w-2/4 space-y-2">
+                              <h4 className="text-lg font-bold text-gray-300">{raffle.name}</h4>
+                              <p className="text-sm text-gray-400 line-clamp-2">{raffle.description}</p>
+                              <div className="flex gap-2 text-sm">
+                                <span className="bg-gray-900/50 text-gray-200 px-2 py-1 rounded">
+                                  Estado: {raffle.status}
+                                </span>
+                                <span className="bg-green-900/50 text-green-200 px-2 py-1 rounded">
+                                  Precio: ${raffle.price}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="md:w-1/4 flex flex-col justify-center gap-2">
+                              <button 
+                                onClick={() => handleEditRaffle(raffle)}
+                                className="bg-blue-800 hover:bg-blue-700 text-white px-3 py-1 rounded transition duration-200 text-sm flex items-center justify-center border border-blue-700"
+                              >
+                                Editar
+                              </button>
+                              {raffle.status === 'inactive' && (
+                                <button 
+                                  onClick={() => handlePromoteRaffle(raffle._id)}
+                                  className="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded transition duration-200 text-sm flex items-center justify-center border border-green-600"
+                                >
+                                  Activar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-[#1a2234] rounded-lg border border-blue-900/50">
+                      <p className="text-gray-400">No hay otras rifas disponibles</p>
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="bg-gray-700 text-gray-300 p-6 rounded text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p>No hay transacciones disponibles</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          {/* Transaction Table */}
+          {!showRaffleManager && (
+            <>
+              <div className="bg-gray-800 rounded-lg shadow-lg mb-8">
+                <div className="flex justify-between items-center border-b border-gray-700 p-4">
+                  <h3 className="text-xl font-bold text-yellow-400">Transacciones Recientes</h3>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => fetchTransactions(adminKey)}
+                      className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition duration-200 text-sm"
+                      disabled={loading}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Actualizar
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4">
+                  {loading ? (
+                    <div className="flex justify-center items-center p-8">
+                      <div className="flex flex-col items-center">
+                        <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                        <p className="text-blue-400 mt-4">Cargando transacciones...</p>
+                      </div>
+                    </div>
+                  ) : error ? (
+                    <div className="bg-red-900 border-l-4 border-red-500 text-red-100 p-4 rounded mb-4">
+                      <div className="flex items-center">
+                        <svg className="w-6 h-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{error}</span>
+                      </div>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="bg-gray-700 text-gray-300 p-6 rounded text-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto mb-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p>No hay transacciones disponibles</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg">
+                      <table className="w-full bg-gray-900 text-white text-sm">
+                        <thead>
+                          <tr className="bg-gray-800">
+                            <th className="p-2 text-left border-b border-gray-700">ID</th>
+                            <th className="p-2 text-left border-b border-gray-700">Email</th>
+                            <th className="p-2 text-left border-b border-gray-700">Monto</th>
+                            <th className="p-2 text-left border-b border-gray-700">Estado</th>
+                            <th className="p-2 text-left border-b border-gray-700">Fecha</th>
+                            <th className="p-2 text-left border-b border-gray-700">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transactions.map((transaction) => (
+                            <tr key={transaction._id} className="hover:bg-gray-800 transition-colors duration-150">
+                              <td className="p-2 border-b border-gray-700">{transaction._id.substring(0, 8)}...</td>
+                              <td className="p-2 border-b border-gray-700">{transaction.email || 'N/A'}</td>
+                              <td className="p-2 border-b border-gray-700">
+                                {new Intl.NumberFormat('es-VE', {
+                                  style: 'currency',
+                                  currency: 'USD'
+                                }).format(transaction.amount || 0)}
+                              </td>
+                              <td className="p-2 border-b border-gray-700">
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                    transaction.status === 'completed'
+                                      ? 'bg-green-900 text-green-200'
+                                      : transaction.status === 'pending'
+                                      ? 'bg-yellow-900 text-yellow-200'
+                                      : 'bg-red-900 text-red-200'
+                                  }`}
+                                >
+                                  {transaction.status === 'completed'
+                                    ? 'Completado'
+                                    : transaction.status === 'pending'
+                                    ? 'Pendiente'
+                                    : 'Fallido'}
+                                </span>
+                              </td>
+                              <td className="p-2 border-b border-gray-700">
+                                {new Date(transaction.createdAt).toLocaleDateString('es-VE')}
+                              </td>
+                              <td className="p-2 border-b border-gray-700">
+                                <button
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition duration-200 text-sm flex items-center"
+                                  onClick={() => {
+                                    setSelectedTransaction(transaction);
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  Detalles
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AdminPage;

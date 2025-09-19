@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login Helper</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .highlight { background-color: #ffff00; padding: 2px 5px; }
+        .code { 
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Venezuelan Raffle Website - Admin Login Helper</h1>
+    
+    <div class="card">
+        <h2>Direct Login Link</h2>
+        <p>Click the button below to log in automatically with the correct admin key:</p>
+        <button id="direct-login">Login as Admin</button>
+        <p><small>Note: This will redirect you to the login page and automatically fill in the correct password.</small></p>
+    </div>
+    
+    <div class="card">
+        <h2>Admin Key Information</h2>
+        <p>Your current admin key (from .env file) is: <span class="code highlight">Tusuerte2025</span></p>
+        <p>Make sure you're entering this <b>exactly</b> as shown (case-sensitive, no extra spaces).</p>
+    </div>
+    
+    <div class="card">
+        <h2>LocalStorage Status</h2>
+        <div id="storage-status">Checking...</div>
+        <button id="fix-storage">Fix Admin Token</button>
+        <button id="clear-storage">Clear Admin Token</button>
+    </div>
+
+    <script>
+        // Check localStorage status
+        function checkStorage() {
+            const status = document.getElementById('storage-status');
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    status.innerHTML = '<p class="error">No admin token found in localStorage</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                if (parsed && parsed.token) {
+                    status.innerHTML = `
+                        <p class="success">Valid admin token found in localStorage</p>
+                        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                    `;
+                } else {
+                    status.innerHTML = '<p class="error">Admin token has invalid format (missing token property)</p>';
+                }
+            } catch (e) {
+                status.innerHTML = `<p class="error">Error parsing admin token: ${e.message}</p>`;
+            }
+        }
+        
+        // Automatic login helper
+        document.getElementById('direct-login').addEventListener('click', () => {
+            // Create a form to submit the password programmatically
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/login';
+            form.style.display = 'none';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'adminKey';
+            input.value = 'Tusuerte2025';
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            
+            // Redirect to login page with password
+            sessionStorage.setItem('autoLogin', 'Tusuerte2025');
+            window.location.href = '/login';
+        });
+        
+        // Fix localStorage
+        document.getElementById('fix-storage').addEventListener('click', () => {
+            const adminObject = {
+                token: 'Tusuerte2025',
+                isAdmin: true,
+                name: 'Admin'
+            };
+            localStorage.setItem('adminInfo', JSON.stringify(adminObject));
+            checkStorage();
+            alert('Admin token fixed in localStorage!');
+        });
+        
+        // Clear localStorage
+        document.getElementById('clear-storage').addEventListener('click', () => {
+            localStorage.removeItem('adminInfo');
+            checkStorage();
+            alert('Admin token cleared from localStorage!');
+        });
+        
+        // Initial check
+        checkStorage();
+    </script>
+</body>
+</html>

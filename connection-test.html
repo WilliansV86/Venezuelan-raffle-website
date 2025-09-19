@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    
+    <p>This page will test if the frontend can connect to the backend server.</p>
+    
+    <button id="testBackend">Test Backend Connection</button>
+    
+    <div id="result">Results will appear here...</div>
+    
+    <script>
+        document.getElementById('testBackend').addEventListener('click', async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing connection to backend...';
+            
+            try {
+                // Try to connect to the backend
+                const response = await fetch('http://localhost:5100/api/admin/test', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <p class="success">✅ Connection successful!</p>
+                    <p>Status code: ${response.status}</p>
+                    <p>Response data: ${JSON.stringify(data)}</p>
+                    <p>This confirms the backend is reachable from the browser.</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">❌ Connection failed!</p>
+                    <p>Error: ${error.message}</p>
+                    <p>This is likely a CORS issue. The backend server at port 5100 is not accepting requests from the browser.</p>
+                    <p>Solution: Make sure CORS is enabled in your backend server and configured to allow requests from your frontend origin.</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

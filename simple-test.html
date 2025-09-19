@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple - Sorteo Venezolano</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        h1 {
+            color: #e30613;
+            text-align: center;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Simple - Sorteo Venezolano</h1>
+        
+        <div>
+            <button id="checkHealth">Verificar Servidor</button>
+            <div id="healthResult" class="result"></div>
+        </div>
+        
+        <hr>
+        
+        <form id="purchaseForm">
+            <h3>Formulario de Compra Simple</h3>
+            <div>
+                <label for="fullName">Nombre:</label><br>
+                <input type="text" id="fullName" name="fullName" value="Usuario de Prueba" style="width: 100%;"><br>
+            </div>
+            <div>
+                <label for="email">Email:</label><br>
+                <input type="email" id="email" name="email" value="test@example.com" style="width: 100%;"><br>
+            </div>
+            <div>
+                <label for="quantity">Cantidad de boletos:</label><br>
+                <input type="number" id="quantity" name="quantity" value="10" min="1" style="width: 100%;"><br>
+            </div>
+            <div>
+                <label for="paymentMethod">Método de pago:</label><br>
+                <select id="paymentMethod" name="paymentMethod" style="width: 100%;">
+                    <option value="Zelle">Zelle</option>
+                    <option value="Binance">Binance</option>
+                    <option value="Reserve">Reserve</option>
+                </select>
+            </div>
+            <div>
+                <label for="paymentReference">Referencia de pago:</label><br>
+                <input type="text" id="paymentReference" name="paymentReference" value="TEST123456" style="width: 100%;"><br>
+            </div>
+            <br>
+            <button type="submit" id="submitBtn">Enviar Compra</button>
+        </form>
+        
+        <div id="purchaseResult" class="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('checkHealth').addEventListener('click', function() {
+            const healthResult = document.getElementById('healthResult');
+            healthResult.textContent = 'Verificando...';
+            healthResult.className = 'result';
+            
+            fetch('http://localhost:5001/api/health/ping')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    healthResult.textContent = 'Servidor en línea: ' + JSON.stringify(data);
+                    healthResult.className = 'result success';
+                })
+                .catch(error => {
+                    healthResult.textContent = 'Error: ' + error.message;
+                    healthResult.className = 'result error';
+                });
+        });
+        
+        document.getElementById('purchaseForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const purchaseResult = document.getElementById('purchaseResult');
+            purchaseResult.textContent = 'Enviando...';
+            purchaseResult.className = 'result';
+            
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                whatsappNumber: '+1234567890',
+                identificationNumber: 'V-12345678',
+                quantity: parseInt(document.getElementById('quantity').value),
+                paymentAmount: parseInt(document.getElementById('quantity').value) * 150, // $1.50 * 100 cents
+                paymentMethod: document.getElementById('paymentMethod').value,
+                paymentReference: document.getElementById('paymentReference').value,
+                raffleId: '649ab8f45cbb0d3f084c57a1'
+            };
+            
+            fetch('http://localhost:5001/api/tickets/purchase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || 'Error en el servidor');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                purchaseResult.textContent = 'Éxito: ' + JSON.stringify(data);
+                purchaseResult.className = 'result success';
+            })
+            .catch(error => {
+                purchaseResult.textContent = 'Error: ' + error.message;
+                purchaseResult.className = 'result error';
+            });
+        });
+    </script>
+</body>
+</html>

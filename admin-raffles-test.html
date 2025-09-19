@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Raffles Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; color: #333; }
+        h1, h2, h3 { color: #2c3e50; }
+        .container { max-width: 1000px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card { background-color: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; }
+        button { background-color: #3498db; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background-color: #2980b9; }
+        button.danger { background-color: #e74c3c; }
+        button.danger:hover { background-color: #c0392b; }
+        button.success { background-color: #2ecc71; }
+        button.success:hover { background-color: #27ae60; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 400px; overflow-y: auto; }
+        .token-display { word-break: break-all; font-size: 12px; }
+        .success-message { color: green; font-weight: bold; }
+        .error-message { color: red; font-weight: bold; }
+        .accordion { cursor: pointer; padding: 10px; background-color: #f1f1f1; width: 100%; text-align: left; border: none; outline: none; transition: 0.4s; }
+        .accordion:after { content: '\02795'; float: right; margin-left: 5px; }
+        .active:after { content: "\2796"; }
+        .panel { padding: 0 18px; background-color: white; max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Raffles API Test</h1>
+
+        <div class="card">
+            <h2>Admin Token</h2>
+            <div id="tokenStatus"></div>
+            <div class="button-group">
+                <button onclick="checkAdminToken()">Check Admin Token</button>
+                <button onclick="clearAdminToken()" class="danger">Clear Admin Token</button>
+                <button onclick="getNewAdminToken()" class="success">Get New Admin Token</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Test API Endpoints</h2>
+            <div class="button-group">
+                <button onclick="testPublicRaffles()">Test Public Raffles Endpoint</button>
+                <button onclick="testAdminRaffles()" class="success">Test Admin Raffles Endpoint</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>API Response</h2>
+            <div id="responseStatus"></div>
+            <button class="accordion" onclick="toggleAccordion(this)">View Response Details</button>
+            <div class="panel">
+                <pre id="responseContent"></pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Fix Instructions</h2>
+            <ol>
+                <li>First, check your admin token using "Check Admin Token"</li>
+                <li>If your token is missing or invalid, click "Get New Admin Token"</li>
+                <li>Test the admin raffles endpoint - it should return your raffles</li>
+                <li>If you see your raffles in the test but not in the admin panel, your admin page may need to be reloaded</li>
+                <li>After confirming the API works, go back to your <a href="http://localhost:3001/admin" target="_blank">Admin Panel</a></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Check if admin token exists and display it
+        function checkAdminToken() {
+            const tokenStatusDiv = document.getElementById('tokenStatus');
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    tokenStatusDiv.innerHTML = '<p class="error-message">No admin token found in localStorage.</p>';
+                    return;
+                }
+                
+                const parsedToken = JSON.parse(adminInfo);
+                tokenStatusDiv.innerHTML = `
+                    <p class="success-message">Admin token found in localStorage:</p>
+                    <pre class="token-display">${JSON.stringify(parsedToken, null, 2)}</pre>
+                `;
+            } catch (error) {
+                tokenStatusDiv.innerHTML = `<p class="error-message">Error reading token: ${error.message}</p>`;
+            }
+        }
+
+        // Clear admin token from localStorage
+        function clearAdminToken() {
+            localStorage.removeItem('adminInfo');
+            document.getElementById('tokenStatus').innerHTML = '<p>Admin token cleared from localStorage.</p>';
+        }
+
+        // Get new admin token
+        async function getNewAdminToken() {
+            const tokenStatusDiv = document.getElementById('tokenStatus');
+            tokenStatusDiv.innerHTML = '<p>Getting new admin token...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminKey: 'admin123' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.token) {
+                    localStorage.setItem('adminInfo', JSON.stringify(data));
+                    tokenStatusDiv.innerHTML = `
+                        <p class="success-message">New admin token obtained and saved:</p>
+                        <pre class="token-display">${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    tokenStatusDiv.innerHTML = `
+                        <p class="error-message">Failed to get admin token: ${data.message || 'Unknown error'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                tokenStatusDiv.innerHTML = `
+                    <p class="error-message">Error: ${error.message}</p>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+            }
+        }
+
+        // Test public raffles endpoint
+        async function testPublicRaffles() {
+            const statusDiv = document.getElementById('responseStatus');
+            const contentDiv = document.getElementById('responseContent');
+            
+            statusDiv.innerHTML = '<p>Testing public raffles endpoint...</p>';
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/raffles');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <p class="success-message">Public raffles endpoint working!</p>
+                        <p>Found ${Array.isArray(data) ? data.length : 'N/A'} raffles</p>
+                    `;
+                    contentDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    statusDiv.innerHTML = `
+                        <p class="error-message">Error: ${response.status} ${response.statusText}</p>
+                    `;
+                    contentDiv.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
+                contentDiv.textContent = error.stack;
+            }
+        }
+
+        // Test admin raffles endpoint
+        async function testAdminRaffles() {
+            const statusDiv = document.getElementById('responseStatus');
+            const contentDiv = document.getElementById('responseContent');
+            
+            statusDiv.innerHTML = '<p>Testing admin raffles endpoint...</p>';
+            
+            try {
+                // Get admin token from localStorage
+                const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
+                if (!adminInfo.token) {
+                    statusDiv.innerHTML = '<p class="error-message">No admin token found. Please get a new token first.</p>';
+                    return;
+                }
+                
+                // Make request with Bearer token
+                const response = await fetch('http://localhost:5100/api/admin/raffles', {
+                    headers: {
+                        'Authorization': `Bearer ${adminInfo.token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `
+                        <p class="success-message">Admin raffles endpoint working!</p>
+                        <p>Found ${Array.isArray(data) ? data.length : 'N/A'} raffles</p>
+                    `;
+                    contentDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    statusDiv.innerHTML = `
+                        <p class="error-message">Error (${response.status}): ${response.statusText}</p>
+                    `;
+                    contentDiv.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error-message">Error: ${error.message}</p>`;
+                contentDiv.textContent = error.stack;
+            }
+        }
+
+        // Toggle accordion
+        function toggleAccordion(element) {
+            element.classList.toggle("active");
+            const panel = element.nextElementSibling;
+            if (panel.style.maxHeight) {
+                panel.style.maxHeight = null;
+            } else {
+                panel.style.maxHeight = panel.scrollHeight + "px";
+            }
+        }
+
+        // Check admin token on page load
+        document.addEventListener('DOMContentLoaded', checkAdminToken);
+    </script>
+</body>
+</html>

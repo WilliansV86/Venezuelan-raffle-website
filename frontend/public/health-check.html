@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Health Check</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border-color: #ffeeba;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    button:hover {
+      background-color: #0069d9;
+    }
+    pre {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Venezuelan Raffle Website - API Health Check</h1>
+  
+  <div class="card">
+    <h2>Backend API Status</h2>
+    <div id="api-status">Checking...</div>
+  </div>
+  
+  <div class="card">
+    <h2>LocalStorage</h2>
+    <div id="localstorage-status">Checking...</div>
+    <button id="view-localstorage">View Contents</button>
+    <button id="clear-localstorage">Clear All</button>
+    <button id="fix-admin-token">Fix Admin Token</button>
+  </div>
+  
+  <div class="card">
+    <h2>API Endpoints Test</h2>
+    <button id="test-health">Test /api/health</button>
+    <button id="test-raffles">Test /api/raffles</button>
+    <button id="test-admin">Test /api/admin</button>
+    <div id="test-results"></div>
+  </div>
+
+  <div class="card">
+    <h2>Response Details</h2>
+    <pre id="response-details">No response yet</pre>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check API status initially
+      checkApiStatus();
+      
+      // Check localStorage
+      checkLocalStorage();
+      
+      // Add event listeners for buttons
+      document.getElementById('view-localstorage').addEventListener('click', viewLocalStorage);
+      document.getElementById('clear-localstorage').addEventListener('click', clearLocalStorage);
+      document.getElementById('fix-admin-token').addEventListener('click', fixAdminToken);
+      document.getElementById('test-health').addEventListener('click', () => testEndpoint('/api/health'));
+      document.getElementById('test-raffles').addEventListener('click', () => testEndpoint('/api/raffles'));
+      document.getElementById('test-admin').addEventListener('click', () => testEndpoint('/api/admin'));
+    });
+    
+    async function checkApiStatus() {
+      const statusElement = document.getElementById('api-status');
+      
+      try {
+        const response = await fetch('http://localhost:5100/test', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          statusElement.innerHTML = `
+            <div class="success">
+              <p>✓ Backend API is accessible</p>
+              <p>Server time: ${data.time || 'Not available'}</p>
+            </div>
+          `;
+        } else {
+          statusElement.innerHTML = `
+            <div class="error">
+              <p>✗ Backend API responded with status: ${response.status}</p>
+              <p>Error: ${response.statusText}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        statusElement.innerHTML = `
+          <div class="error">
+            <p>✗ Cannot connect to Backend API</p>
+            <p>Error: ${error.message}</p>
+            <p>Please ensure the backend server is running on port 5100</p>
+          </div>
+        `;
+      }
+    }
+    
+    function checkLocalStorage() {
+      const statusElement = document.getElementById('localstorage-status');
+      const adminInfo = localStorage.getItem('adminInfo');
+      
+      if (adminInfo) {
+        try {
+          const parsed = JSON.parse(adminInfo);
+          if (parsed && parsed.token) {
+            statusElement.innerHTML = `
+              <div class="success">
+                <p>✓ Admin token found and valid JSON</p>
+                <p>User: ${parsed.name || 'Unknown'}</p>
+                <p>Is Admin: ${parsed.isAdmin ? 'Yes' : 'No'}</p>
+              </div>
+            `;
+          } else {
+            statusElement.innerHTML = `
+              <div class="warning">
+                <p>⚠ Admin token found but may be invalid</p>
+                <p>Token may be missing required fields</p>
+              </div>
+            `;
+          }
+        } catch (e) {
+          statusElement.innerHTML = `
+            <div class="error">
+              <p>✗ Admin token found but is not valid JSON</p>
+              <p>Error: ${e.message}</p>
+              <p>Value: ${adminInfo}</p>
+              <p>Click "Fix Admin Token" to repair</p>
+            </div>
+          `;
+        }
+      } else {
+        statusElement.innerHTML = `
+          <div class="warning">
+            <p>⚠ No admin token found in localStorage</p>
+            <p>You will need to log in to access admin features</p>
+          </div>
+        `;
+      }
+    }
+    
+    function viewLocalStorage() {
+      const details = document.getElementById('response-details');
+      const items = { ...localStorage };
+      details.textContent = JSON.stringify(items, null, 2);
+    }
+    
+    function clearLocalStorage() {
+      localStorage.clear();
+      alert('LocalStorage has been cleared');
+      checkLocalStorage();
+      document.getElementById('response-details').textContent = 'LocalStorage cleared successfully';
+    }
+    
+    function fixAdminToken() {
+      const currentToken = localStorage.getItem('adminInfo');
+      
+      try {
+        // Try to parse the current token if it exists
+        const tokenObj = currentToken ? JSON.parse(currentToken) : null;
+        
+        // Create a properly formatted token object
+        const fixedToken = {
+          token: tokenObj?.token || 'test-admin-key-123',
+          isAdmin: true,
+          name: tokenObj?.name || 'Admin'
+        };
+        
+        // Save the fixed token
+        localStorage.setItem('adminInfo', JSON.stringify(fixedToken));
+        alert('Admin token has been fixed');
+        checkLocalStorage();
+        document.getElementById('response-details').textContent = 'Admin token fixed: ' + JSON.stringify(fixedToken, null, 2);
+      } catch (e) {
+        // If parsing fails, create a new token
+        const newToken = {
+          token: 'test-admin-key-123',
+          isAdmin: true,
+          name: 'Admin'
+        };
+        localStorage.setItem('adminInfo', JSON.stringify(newToken));
+        alert('Admin token has been reset');
+        checkLocalStorage();
+        document.getElementById('response-details').textContent = 'Admin token reset: ' + JSON.stringify(newToken, null, 2);
+      }
+    }
+    
+    async function testEndpoint(endpoint) {
+      const resultsElement = document.getElementById('test-results');
+      const detailsElement = document.getElementById('response-details');
+      
+      resultsElement.innerHTML = `Testing ${endpoint}...`;
+      
+      try {
+        const token = JSON.parse(localStorage.getItem('adminInfo'))?.token;
+        const headers = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        };
+        
+        if (token && endpoint.includes('/admin')) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch(`http://localhost:5100${endpoint}`, {
+          method: 'GET',
+          headers: headers
+        });
+        
+        const data = await response.text();
+        let jsonData;
+        try {
+          jsonData = JSON.parse(data);
+          detailsElement.textContent = JSON.stringify(jsonData, null, 2);
+        } catch (e) {
+          detailsElement.textContent = data;
+        }
+        
+        if (response.ok) {
+          resultsElement.innerHTML = `
+            <div class="success">
+              <p>✓ ${endpoint} responded successfully (${response.status})</p>
+            </div>
+          `;
+        } else {
+          resultsElement.innerHTML = `
+            <div class="error">
+              <p>✗ ${endpoint} returned error ${response.status}: ${response.statusText}</p>
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultsElement.innerHTML = `
+          <div class="error">
+            <p>✗ Error testing ${endpoint}</p>
+            <p>${error.message}</p>
+          </div>
+        `;
+        detailsElement.textContent = error.stack || error.message;
+      }
+    }
+  </script>
+</body>
+</html>

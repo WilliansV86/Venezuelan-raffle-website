@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Admin Login</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 40px auto; 
+            padding: 20px;
+            line-height: 1.6;
+            text-align: center;
+            background-color: #f5f5f5;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 25px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        .code {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            border: 1px solid #ddd;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 4px;
+            padding: 10px 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Venezuelan Raffle Website</h1>
+        <h2>Direct Admin Login</h2>
+        
+        <p>Click the button below to open the login page:</p>
+        <button id="login-button">Go to Login Page</button>
+        
+        <div class="info">
+            <p><strong>When the login page opens, enter this password exactly:</strong></p>
+            <div class="code">Tusuerte2025</div>
+            <p>Make sure to type it exactly as shown (case-sensitive)</p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('login-button').addEventListener('click', function() {
+            // Open the login page in a new tab
+            window.open('http://localhost:3001/login', '_blank');
+        });
+    </script>
+</body>
+</html>

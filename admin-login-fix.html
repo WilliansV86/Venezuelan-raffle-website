@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login Fix</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        h1, h2 { 
+            color: #2c3e50;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+        }
+        .success { color: #2ecc71; font-weight: bold; }
+        .error { color: #e74c3c; font-weight: bold; }
+        input {
+            padding: 8px;
+            margin: 8px 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .help-text {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 15px 0;
+        }
+        #result {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Venezuelan Raffle Website - Admin Login Fix</h1>
+    
+    <div class="card">
+        <h2>Login with Admin Key</h2>
+        <p>Enter the admin key exactly as it appears in your .env file:</p>
+        <input type="password" id="adminKey" value="Tusuerte2025">
+        <button onclick="login()">Login</button>
+        <div id="result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Current LocalStorage</h2>
+        <div id="localStorage-status">Checking...</div>
+        <button onclick="checkStorage()">Check Storage</button>
+        <button onclick="clearStorage()">Clear Admin Token</button>
+    </div>
+    
+    <div class="help-text">
+        <h3>How to use this tool:</h3>
+        <ol>
+            <li>First, clear any existing admin token using the "Clear Admin Token" button</li>
+            <li>Enter the admin key (default: Tusuerte2025) and click "Login"</li>
+            <li>If successful, a proper JWT token will be stored in localStorage</li>
+            <li>Then, <a href="http://localhost:3001/admin/raffles" target="_blank">Go to the Admin Panel</a></li>
+        </ol>
+    </div>
+    
+    <script>
+        // Check localStorage on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkStorage();
+        });
+        
+        // Login with admin key
+        async function login() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Logging in...';
+            
+            const adminKey = document.getElementById('adminKey').value;
+            
+            try {
+                // Make the login API call
+                const response = await fetch('http://localhost:5100/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ adminKey })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Save the token properly
+                    localStorage.setItem('adminInfo', JSON.stringify(data));
+                    
+                    resultDiv.innerHTML = `
+                        <p class="success">Login successful! Admin token saved correctly.</p>
+                        <p>You can now <a href="http://localhost:3001/admin/raffles" target="_blank">go to the admin panel</a>.</p>
+                    `;
+                    
+                    // Update localStorage display
+                    checkStorage();
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">Login failed: ${data.message || 'Unknown error'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">Error: ${error.message}</p>
+                    <p>Make sure your backend server is running at http://localhost:5100</p>
+                `;
+            }
+        }
+        
+        // Check localStorage
+        function checkStorage() {
+            const statusDiv = document.getElementById('localStorage-status');
+            
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    statusDiv.innerHTML = '<p class="error">No admin token found in localStorage</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                statusDiv.innerHTML = `
+                    <p><strong>adminInfo in localStorage:</strong></p>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">Error reading localStorage: ${error.message}</p>`;
+            }
+        }
+        
+        // Clear admin token
+        function clearStorage() {
+            localStorage.removeItem('adminInfo');
+            checkStorage();
+            alert('Admin token cleared from localStorage!');
+        }
+    </script>
+</body>
+</html>

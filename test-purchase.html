@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Purchase - Venezuelan Raffle</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #1a5276;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #1a5276;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #154360;
+    }
+    .note {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #fdf2e9;
+      border-left: 4px solid #e67e22;
+    }
+    #response {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f5f5f5;
+      white-space: pre-wrap;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Purchase Form</h1>
+  
+  <form id="purchaseForm" enctype="multipart/form-data">
+    <div class="form-group">
+      <label for="fullName">Full Name:</label>
+      <input type="text" id="fullName" name="fullName" value="Test User" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" value="test@example.com" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="whatsappNumber">WhatsApp Number:</label>
+      <input type="text" id="whatsappNumber" name="whatsappNumber" value="+58 412 1234567" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="identificationNumber">Identification Number:</label>
+      <input type="text" id="identificationNumber" name="identificationNumber" value="V-12345678" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="paymentAmount">Payment Amount (in USD):</label>
+      <input type="number" id="paymentAmount" name="paymentAmount" value="10" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="paymentMethod">Payment Method:</label>
+      <select id="paymentMethod" name="paymentMethod" required>
+        <option value="transfer">Bank Transfer</option>
+        <option value="zelle">Zelle</option>
+        <option value="binance">Binance</option>
+        <option value="pago_movil">Pago Móvil</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="paymentReference">Payment Reference:</label>
+      <input type="text" id="paymentReference" name="paymentReference" value="REF123456" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="raffleId">Raffle ID:</label>
+      <input type="text" id="raffleId" name="raffleId" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="paymentProof">Payment Proof (Image):</label>
+      <input type="file" id="paymentProof" name="paymentProof" accept="image/*" required>
+    </div>
+    
+    <button type="submit">Submit Purchase</button>
+  </form>
+  
+  <div class="note">
+    <p><strong>Note:</strong> Before using this form:</p>
+    <ol>
+      <li>Ensure your backend server is running on port 5001</li>
+      <li>Make sure MongoDB connection is working</li>
+      <li>You'll need a valid Raffle ID from your database</li>
+    </ol>
+  </div>
+  
+  <div id="response"></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // First fetch available raffles to help user select
+      fetch('http://localhost:5001/api/raffles')
+        .then(response => response.json())
+        .then(raffles => {
+          if (raffles && raffles.length > 0) {
+            document.getElementById('raffleId').value = raffles[0]._id;
+          }
+        })
+        .catch(error => console.error('Error fetching raffles:', error));
+      
+      // Handle form submission
+      document.getElementById('purchaseForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const responseDiv = document.getElementById('response');
+        responseDiv.textContent = 'Processing purchase request...';
+        responseDiv.style.display = 'block';
+        
+        fetch('http://localhost:5001/api/tickets/purchase', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(result => {
+          if (result.status === 200 || result.status === 201) {
+            responseDiv.textContent = 'Purchase successful!\n\n' + JSON.stringify(result.body, null, 2);
+          } else {
+            responseDiv.textContent = 'Error: ' + (result.body.message || 'Unknown error') + '\n\n' + JSON.stringify(result.body, null, 2);
+          }
+        })
+        .catch(error => {
+          responseDiv.textContent = 'Error: ' + error.message;
+        });
+      });
+    });
+  </script>
+</body>
+</html>

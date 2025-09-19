@@ -1,0 +1,22 @@
+.app-header {
+  background-color: #282c34; /* A dark background, you can change this */
+  padding: 15px 30px;
+  display: flex;
+  align-items: center;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-logo {
+  height: 50px; /* Adjust as needed */
+  margin-right: 15px;
+  border-radius: 5px; /* Optional: if you want rounded corners for the logo */
+}
+
+.header-title {
+  font-size: 1.8em; /* Adjust as needed */
+  margin: 0;
+  font-weight: 600;
+}
+
+/* You can add more styles for navigation links later */

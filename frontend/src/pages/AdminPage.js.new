@@ -1,0 +1,646 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorAlert from '../components/common/ErrorAlert';
+
+// Default API URL for the backend
+const API_URL = 'http://localhost:5000/api';
+
+// Helper function to get mock raffle data for development mode
+const getMockRaffles = () => {
+  return [
+    {
+      _id: 'mock-raffle-1',
+      name: 'Gran Regreso a Clases',
+      status: 'active',
+      price: 1.5,
+      priceBS: 300,
+      maxTickets: 10000,
+      soldTickets: 0,
+      imageUrl: '/images/default-raffle-image.png',
+      description: 'Rifa para el regreso a clases',
+      drawDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      _id: 'mock-raffle-2',
+      name: 'Rifa de Navidad',
+      status: 'inactive',
+      price: 2,
+      priceBS: 500,
+      maxTickets: 5000,
+      soldTickets: 0,
+      imageUrl: '/images/default-raffle-image.png',
+      description: 'Rifa especial de Navidad',
+      drawDate: new Date(new Date().getTime() + 60 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    {
+      _id: 'mock-raffle-3',
+      name: 'Rifa de Año Nuevo',
+      status: 'completed',
+      price: 3,
+      priceBS: 750,
+      maxTickets: 3000,
+      soldTickets: 3000,
+      imageUrl: '/images/default-raffle-image.png',
+      description: 'Celebra el año nuevo con esta rifa',
+      drawDate: new Date(new Date().getTime() - 10 * 24 * 60 * 60 * 1000).toISOString()
+    }
+  ];
+};
+
+const AdminPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Admin authentication states
+  const [adminKey, setAdminKey] = useState(localStorage.getItem('admin_key') || '');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [adminKeyInput, setAdminKeyInput] = useState('');
+  
+  // Transaction management states
+  const [transactions, setTransactions] = useState([]);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
+  
+  // UI state management
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  
+  // Raffle management states
+  const [rafflesForManager, setRafflesForManager] = useState({
+    active: null,
+    previous: null,
+    others: [],
+    allRaffles: []
+  });
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState('');
+  
+  // Dev mode toggle for testing without backend
+  const [usingDevMode, setUsingDevMode] = useState(localStorage.getItem('devMode') === 'true');
+  
+  // Show raffle manager or transaction management
+  const [showRaffleManager, setShowRaffleManager] = useState(
+    location.state?.showRaffleManager !== undefined
+      ? location.state.showRaffleManager 
+      : true
+  );
+
+  // Toggle dev mode function
+  const toggleDevMode = () => {
+    const newDevMode = !usingDevMode;
+    console.log(`🔧 ${newDevMode ? 'Activando' : 'Desactivando'} modo de desarrollo`);
+    localStorage.setItem('devMode', newDevMode ? 'true' : 'false');
+    setUsingDevMode(newDevMode);
+    
+    // Refresh raffles when toggling dev mode
+    fetchRafflesForManager(newDevMode);
+  };
+
+  // Handle admin authentication
+  useEffect(() => {
+    // Check if admin key exists in localStorage
+    const savedAdminKey = localStorage.getItem('admin_key');
+    if (savedAdminKey) {
+      setAdminKey(savedAdminKey);
+      setAuthenticated(true);
+      fetchTransactions(savedAdminKey);
+    } else {
+      setLoading(false);
+    }
+    
+    // Initialize dev mode from localStorage if it exists
+    const devMode = localStorage.getItem('devMode') === 'true';
+    setUsingDevMode(devMode);
+    
+    // Fetch raffles based on dev mode setting
+    fetchRafflesForManager(devMode);
+  }, []);
+  
+  // Effect to handle location state changes for navigation
+  useEffect(() => {
+    if (location.state?.showRaffleManager !== undefined) {
+      setShowRaffleManager(location.state.showRaffleManager);
+    }
+    
+    // Check if we have an admin key from navigation state
+    if (location.state?.adminKey) {
+      setAdminKey(location.state.adminKey);
+      setAuthenticated(true);
+      localStorage.setItem('admin_key', location.state.adminKey);
+    }
+  }, [location.state]);
+
+  // Authentication function
+  const handleAuthentication = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_URL}/admin/verify`, { adminKey: adminKeyInput });
+      
+      if (response.data.success) {
+        localStorage.setItem('admin_key', adminKeyInput);
+        setAdminKey(adminKeyInput);
+        setAuthenticated(true);
+        fetchTransactions(adminKeyInput);
+        fetchRafflesForManager(usingDevMode);
+      } else {
+        setError('Clave de administrador inválida');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Error de autenticación:', err);
+      setError('Error de autenticación: ' + (err.response?.data?.message || err.message));
+      setLoading(false);
+    }
+  };
+
+  // Transaction fetching
+  const fetchTransactions = async (key) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/transactions`, {
+        headers: {
+          'x-admin-key': key
+        }
+      });
+      setTransactions(response.data.reverse());
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+      setError('Error al cargar transacciones: ' + (err.response?.data?.message || err.message));
+      setLoading(false);
+    }
+  };
+
+  // Fetch raffles for the manager
+  const fetchRafflesForManager = async (devMode = usingDevMode) => {
+    setStatusLoading(true);
+    setStatusError('');
+    
+    try {
+      // If in dev mode, use mock data
+      if (devMode) {
+        console.log('🔧 Usando datos simulados para rifas');
+        const mockRaffles = getMockRaffles();
+        
+        // Set active, previous, and other raffles
+        setRafflesForManager({
+          active: mockRaffles.find(r => r.status === 'active'),
+          previous: mockRaffles.find(r => r.status === 'completed'),
+          others: mockRaffles.filter(r => r.status !== 'active' && r.status !== 'completed'),
+          allRaffles: mockRaffles
+        });
+        
+        setStatusLoading(false);
+        return;
+      }
+      
+      // If not in dev mode, fetch from backend
+      const response = await axios.get(`${API_URL}/raffles`, {
+        headers: {
+          'x-admin-key': adminKey
+        }
+      });
+      
+      // Process raffles from the response
+      if (response.data && Array.isArray(response.data)) {
+        const rafflesArray = response.data;
+        
+        // Set raffles from the data we found
+        const activeRaffles = rafflesArray.filter(r => r.status === 'active' || r.status === 'Active');
+        const completedRaffles = rafflesArray.filter(r => r.status === 'completed' || r.status === 'Completed');
+        const otherRaffles = rafflesArray.filter(r => 
+          (r.status !== 'active' && r.status !== 'Active') && 
+          (r.status !== 'completed' && r.status !== 'Completed')
+        );
+        
+        setRafflesForManager({
+          active: activeRaffles.length > 0 ? activeRaffles[0] : null,
+          previous: completedRaffles.length > 0 ? completedRaffles[0] : null,
+          others: otherRaffles,
+          allRaffles: rafflesArray
+        });
+        
+        setStatusLoading(false);
+      } else {
+        throw new Error('No raffles found in response');
+      }
+    } catch (error) {
+      console.error('Error fetching raffles:', error);
+      setStatusError('Error al cargar rifas: ' + (error.response?.data?.message || error.message || 'Error desconocido'));
+      setStatusLoading(false);
+      
+      if (!usingDevMode) {
+        console.log('🔧 Activando modo de desarrollo automáticamente para permitir pruebas');
+        localStorage.setItem('devMode', 'true');
+        
+        // Use the getMockRaffles function
+        const mockRaffles = getMockRaffles();
+        
+        // Set active, previous, and other raffles
+        setRafflesForManager({
+          active: mockRaffles.find(r => r.status === 'active'),
+          previous: mockRaffles.find(r => r.status === 'completed'),
+          others: mockRaffles.filter(r => r.status !== 'active' && r.status !== 'completed'),
+          allRaffles: mockRaffles
+        });
+        
+        // Set dev mode flag
+        setUsingDevMode(true);
+      }
+    }
+  };
+  
+  // Handle updating transaction status
+  const updateTransactionStatus = async (id, newStatus) => {
+    try {
+      const response = await axios.patch(
+        `${API_URL}/transactions/${id}`, 
+        {
+          status: newStatus,
+          adminNotes: adminNotes
+        },
+        {
+          headers: {
+            'x-admin-key': adminKey
+          }
+        }
+      );
+      
+      if (response.data) {
+        // Update the transaction in the local state
+        setTransactions(transactions.map(t => 
+          t._id === id ? { ...t, status: newStatus, adminNotes: adminNotes } : t
+        ));
+        
+        setActionMessage(`Estado de transacción actualizado a: ${newStatus}`);
+        setSelectedTransaction(null);
+        setAdminNotes('');
+      }
+    } catch (err) {
+      console.error('Error updating transaction status:', err);
+      setError('Error al actualizar estado: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  // Create a new raffle
+  const createRaffle = () => {
+    navigate('/admin/create-raffle', { 
+      state: { adminKey }
+    });
+  };
+
+  // Navigate to edit a raffle
+  const goToEditRaffle = (raffleId) => {
+    navigate(`/admin/edit-raffle/${raffleId}`, { 
+      state: { 
+        adminKey,
+        showRaffleManager: true // To ensure we come back to raffle management
+      }
+    });
+  };
+
+  // Raffle manager section
+  const RaffleManagerSection = () => {
+    if (statusLoading) {
+      return <LoadingSpinner />;
+    }
+    
+    return (
+      <div className="raffle-manager dark-theme">
+        <div className="header-section">
+          <h2 className="text-white">Gestión de Rifas</h2>
+          <button 
+            className={`dev-mode-toggle ${usingDevMode ? 'active' : ''}`}
+            onClick={toggleDevMode}
+          >
+            {usingDevMode ? '🔧 Dev Mode Activo' : '🔧 Dev Mode Inactivo'}
+          </button>
+        </div>
+        
+        {statusError && <ErrorAlert message={statusError} />}
+        
+        {updateSuccess && (
+          <div className="alert alert-success">
+            Rifa actualizada con éxito
+          </div>
+        )}
+        
+        <div className="raffle-actions">
+          <button className="btn btn-primary" onClick={createRaffle}>
+            Crear Nueva Rifa
+          </button>
+          <button 
+            className="btn btn-secondary" 
+            onClick={() => setShowRaffleManager(false)}
+          >
+            Ver Transacciones
+          </button>
+        </div>
+        
+        <div className="raffles-container">
+          {/* Active Raffle Section */}
+          <div className="raffle-section">
+            <h3 className="section-title">Rifa Activa</h3>
+            {rafflesForManager.active ? (
+              <div className="raffle-card dark-theme">
+                <h4>{rafflesForManager.active.name}</h4>
+                <p>Estado: <span className="status-active">Activa</span></p>
+                <p>Precio: ${rafflesForManager.active.price} USD / {rafflesForManager.active.priceBS} BS</p>
+                <p>Tickets Vendidos: {rafflesForManager.active.soldTickets || 0} / {rafflesForManager.active.maxTickets}</p>
+                <button 
+                  className="btn btn-outline-info" 
+                  onClick={() => goToEditRaffle(rafflesForManager.active._id)}
+                >
+                  Editar
+                </button>
+              </div>
+            ) : (
+              <p className="no-raffles">No hay rifas activas</p>
+            )}
+          </div>
+          
+          {/* Previous Raffle Section */}
+          <div className="raffle-section">
+            <h3 className="section-title">Rifa Anterior</h3>
+            {rafflesForManager.previous ? (
+              <div className="raffle-card dark-theme">
+                <h4>{rafflesForManager.previous.name}</h4>
+                <p>Estado: <span className="status-completed">Completada</span></p>
+                <p>Precio: ${rafflesForManager.previous.price} USD / {rafflesForManager.previous.priceBS} BS</p>
+                <p>Tickets Vendidos: {rafflesForManager.previous.soldTickets || 0} / {rafflesForManager.previous.maxTickets}</p>
+                <button 
+                  className="btn btn-outline-info" 
+                  onClick={() => goToEditRaffle(rafflesForManager.previous._id)}
+                >
+                  Ver Detalles
+                </button>
+              </div>
+            ) : (
+              <p className="no-raffles">No hay rifas anteriores</p>
+            )}
+          </div>
+          
+          {/* Other Raffles Section */}
+          <div className="raffle-section">
+            <h3 className="section-title">Otras Rifas</h3>
+            {rafflesForManager.others.length > 0 ? (
+              <div className="other-raffles-list">
+                {rafflesForManager.others.map(raffle => (
+                  <div className="raffle-card dark-theme" key={raffle._id}>
+                    <h4>{raffle.name}</h4>
+                    <p>Estado: <span className={`status-${raffle.status.toLowerCase()}`}>{raffle.status}</span></p>
+                    <p>Precio: ${raffle.price} USD / {raffle.priceBS} BS</p>
+                    <button 
+                      className="btn btn-outline-info" 
+                      onClick={() => goToEditRaffle(raffle._id)}
+                    >
+                      Editar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="no-raffles">No hay otras rifas</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Transaction management section
+  const TransactionManagementSection = () => {
+    if (loading) {
+      return <LoadingSpinner />;
+    }
+    
+    return (
+      <div className="transaction-management dark-theme">
+        <div className="header-section">
+          <h2 className="text-white">Gestión de Transacciones</h2>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setShowRaffleManager(true)}
+          >
+            Gestionar Rifas
+          </button>
+        </div>
+        
+        {actionMessage && (
+          <div className="alert alert-success">
+            {actionMessage}
+            <button 
+              className="close-btn" 
+              onClick={() => setActionMessage('')}
+            >
+              ×
+            </button>
+          </div>
+        )}
+        
+        {error && <ErrorAlert message={error} />}
+        
+        <div className="transactions-container">
+          <div className="transactions-list">
+            <h3>Lista de Transacciones</h3>
+            {transactions.length > 0 ? (
+              <div className="table-responsive">
+                <table className="table table-dark">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Email</th>
+                      <th>Monto</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map(transaction => (
+                      <tr key={transaction._id}>
+                        <td>{transaction._id.substring(0, 8)}...</td>
+                        <td>{transaction.customerName}</td>
+                        <td>{transaction.customerEmail}</td>
+                        <td>${transaction.amount}</td>
+                        <td>
+                          <span className={`status-badge status-${transaction.status}`}>
+                            {transaction.status}
+                          </span>
+                        </td>
+                        <td>{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <button 
+                            className="btn btn-info btn-sm" 
+                            onClick={() => setSelectedTransaction(transaction)}
+                          >
+                            Ver Detalles
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p>No hay transacciones disponibles</p>
+            )}
+          </div>
+          
+          {selectedTransaction && (
+            <div className="transaction-details dark-theme">
+              <h3>Detalles de Transacción</h3>
+              <div className="details-card">
+                <div className="detail-row">
+                  <span className="detail-label">ID:</span>
+                  <span className="detail-value">{selectedTransaction._id}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Nombre:</span>
+                  <span className="detail-value">{selectedTransaction.customerName}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Email:</span>
+                  <span className="detail-value">{selectedTransaction.customerEmail}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Monto:</span>
+                  <span className="detail-value">${selectedTransaction.amount}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Estado:</span>
+                  <span className={`status-badge status-${selectedTransaction.status}`}>
+                    {selectedTransaction.status}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Fecha:</span>
+                  <span className="detail-value">
+                    {new Date(selectedTransaction.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                {selectedTransaction.raffleId && (
+                  <div className="detail-row">
+                    <span className="detail-label">Rifa:</span>
+                    <span className="detail-value">{selectedTransaction.raffleName || selectedTransaction.raffleId}</span>
+                  </div>
+                )}
+                {selectedTransaction.ticketNumber && (
+                  <div className="detail-row">
+                    <span className="detail-label">Número de Ticket:</span>
+                    <span className="detail-value">{selectedTransaction.ticketNumber}</span>
+                  </div>
+                )}
+                {selectedTransaction.adminNotes && (
+                  <div className="detail-row">
+                    <span className="detail-label">Notas Admin:</span>
+                    <span className="detail-value">{selectedTransaction.adminNotes}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="admin-actions">
+                <h4>Acciones Administrativas</h4>
+                <div className="admin-notes">
+                  <label htmlFor="adminNotes">Notas Administrativas:</label>
+                  <textarea
+                    id="adminNotes"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Añadir notas administrativas..."
+                    className="form-control"
+                  ></textarea>
+                </div>
+                
+                <div className="status-buttons">
+                  <button 
+                    className="btn btn-success"
+                    onClick={() => updateTransactionStatus(selectedTransaction._id, 'completed')}
+                    disabled={selectedTransaction.status === 'completed'}
+                  >
+                    Marcar como Completada
+                  </button>
+                  <button 
+                    className="btn btn-warning"
+                    onClick={() => updateTransactionStatus(selectedTransaction._id, 'pending')}
+                    disabled={selectedTransaction.status === 'pending'}
+                  >
+                    Marcar como Pendiente
+                  </button>
+                  <button 
+                    className="btn btn-danger"
+                    onClick={() => updateTransactionStatus(selectedTransaction._id, 'cancelled')}
+                    disabled={selectedTransaction.status === 'cancelled'}
+                  >
+                    Marcar como Cancelada
+                  </button>
+                </div>
+                
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setSelectedTransaction(null);
+                    setAdminNotes('');
+                  }}
+                >
+                  Cerrar Detalles
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Login form
+  const LoginForm = () => (
+    <div className="admin-login dark-theme">
+      <h2>Administración de Rifas</h2>
+      <p>Ingrese la clave de administrador para continuar.</p>
+      
+      {error && <ErrorAlert message={error} />}
+      
+      <div className="login-form">
+        <input
+          type="password"
+          className="form-control"
+          placeholder="Clave de administrador"
+          value={adminKeyInput}
+          onChange={(e) => setAdminKeyInput(e.target.value)}
+        />
+        <button 
+          className="btn btn-primary"
+          onClick={handleAuthentication}
+          disabled={!adminKeyInput}
+        >
+          Ingresar
+        </button>
+      </div>
+      
+      <p className="go-back">
+        <a href="/" className="text-white">Volver a la página principal</a>
+      </p>
+    </div>
+  );
+
+  // Main render logic
+  return (
+    <div className="admin-page-container dark-theme">
+      {!authenticated ? (
+        <LoginForm />
+      ) : showRaffleManager ? (
+        <RaffleManagerSection />
+      ) : (
+        <TransactionManagementSection />
+      )}
+    </div>
+  );
+};
+
+export default AdminPage;

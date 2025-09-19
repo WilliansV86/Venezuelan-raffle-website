@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal API Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
+    button { margin: 10px 0; padding: 10px; }
+    #result { margin-top: 20px; padding: 10px; border: 1px solid #ddd; min-height: 100px; }
+  </style>
+</head>
+<body>
+  <h1>API Connection Test</h1>
+  
+  <div>
+    <h3>Test 1: Simple GET Request</h3>
+    <button id="testGet">Test GET Request</button>
+  </div>
+  
+  <div>
+    <h3>Test 2: Simple POST Request</h3>
+    <button id="testPost">Test POST Request</button>
+  </div>
+  
+  <div>
+    <h3>Results:</h3>
+    <div id="result">
+      <em>Results will appear here...</em>
+    </div>
+  </div>
+  
+  <script>
+    // Display results function
+    function showResult(message, isError = false) {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = message;
+      resultDiv.style.backgroundColor = isError ? '#ffebee' : '#e8f5e9';
+    }
+    
+    // Test GET request
+    document.getElementById('testGet').addEventListener('click', async () => {
+      try {
+        showResult('Sending GET request...');
+        
+        const response = await fetch('http://localhost:5001/api/test/ping');
+        const data = await response.json();
+        
+        showResult(`
+          <strong>Success!</strong><br>
+          Status: ${response.status}<br>
+          Response: <pre>${JSON.stringify(data, null, 2)}</pre>
+        `);
+        
+      } catch (error) {
+        showResult(`
+          <strong>Error:</strong><br>
+          ${error.message}<br><br>
+          <strong>Possible causes:</strong>
+          <ul>
+            <li>Server not running on port 5001</li>
+            <li>CORS not properly configured</li>
+            <li>Network/firewall issues</li>
+          </ul>
+        `, true);
+      }
+    });
+    
+    // Test POST request
+    document.getElementById('testPost').addEventListener('click', async () => {
+      try {
+        showResult('Sending POST request...');
+        
+        const testData = {
+          name: 'Test User',
+          email: 'test@example.com',
+          message: 'This is a test message'
+        };
+        
+        const response = await fetch('http://localhost:5001/api/test/test-post', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(testData)
+        });
+        
+        const data = await response.json();
+        
+        showResult(`
+          <strong>Success!</strong><br>
+          Status: ${response.status}<br>
+          Response: <pre>${JSON.stringify(data, null, 2)}</pre>
+        `);
+        
+      } catch (error) {
+        showResult(`
+          <strong>Error:</strong><br>
+          ${error.message}<br><br>
+          <strong>Possible causes:</strong>
+          <ul>
+            <li>Server not running on port 5001</li>
+            <li>CORS not properly configured</li>
+            <li>Network/firewall issues</li>
+          </ul>
+        `, true);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venezuelan Raffle - Test Purchase</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    h1 {
+      text-align: center;
+      color: #0056b3;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #0056b3;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #003d82;
+    }
+    .response {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test Purchase Form</h1>
+  <form id="purchaseForm">
+    <div class="form-group">
+      <label for="fullName">Full Name:</label>
+      <input type="text" id="fullName" name="fullName" value="Test User" required>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" value="test@example.com" required>
+    </div>
+
+    <div class="form-group">
+      <label for="whatsappNumber">WhatsApp Number:</label>
+      <input type="text" id="whatsappNumber" name="whatsappNumber" value="405 493 1227" required>
+    </div>
+
+    <div class="form-group">
+      <label for="identificationNumber">Identification Number:</label>
+      <input type="text" id="identificationNumber" name="identificationNumber" value="V-17767135" required>
+    </div>
+
+    <div class="form-group">
+      <label for="paymentAmount">Payment Amount (in USD):</label>
+      <input type="number" id="paymentAmount" name="paymentAmount" value="10" required>
+    </div>
+
+    <div class="form-group">
+      <label for="paymentMethod">Payment Method:</label>
+      <select id="paymentMethod" name="paymentMethod" required>
+        <option value="Zelle">Zelle</option>
+        <option value="PayPal">PayPal</option>
+        <option value="Bitcoin">Bitcoin</option>
+        <option value="BankTransfer">Bank Transfer</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="paymentReference">Payment Reference:</label>
+      <input type="text" id="paymentReference" name="paymentReference" value="REF123456" required>
+    </div>
+
+    <div class="form-group">
+      <label for="raffleId">Raffle ID:</label>
+      <input type="text" id="raffleId" name="raffleId" value="649ab8f45cbb0d3f084c57a1" required>
+    </div>
+
+    <div class="form-group">
+      <label for="paymentProof">Payment Proof (Image):</label>
+      <input type="file" id="paymentProof" name="paymentProof" accept="image/*" required>
+    </div>
+
+    <button type="submit" id="submitBtn">Submit Purchase</button>
+  </form>
+
+  <div id="response" class="response" style="display: none;"></div>
+
+  <script>
+    document.getElementById('purchaseForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      const responseDiv = document.getElementById('response');
+      
+      // Change button text and disable it
+      submitBtn.textContent = 'Processing...';
+      submitBtn.disabled = true;
+      
+      // Get form data
+      const formData = new FormData();
+      
+      // Add all form fields to FormData
+      formData.append('fullName', document.getElementById('fullName').value);
+      formData.append('email', document.getElementById('email').value);
+      formData.append('whatsappNumber', document.getElementById('whatsappNumber').value);
+      formData.append('identificationNumber', document.getElementById('identificationNumber').value);
+      formData.append('paymentAmount', document.getElementById('paymentAmount').value);
+      formData.append('paymentMethod', document.getElementById('paymentMethod').value);
+      formData.append('paymentReference', document.getElementById('paymentReference').value);
+      formData.append('raffleId', document.getElementById('raffleId').value);
+      
+      // Add file if selected
+      const fileInput = document.getElementById('paymentProof');
+      if (fileInput.files[0]) {
+        formData.append('paymentProof', fileInput.files[0]);
+      }
+      
+      try {
+        const response = await fetch('http://localhost:5001/api/tickets/purchase', {
+          method: 'POST',
+          body: formData,
+          // Important: Don't set Content-Type header when using FormData
+          // The browser will set it automatically with the correct boundary
+        });
+        
+        const data = await response.json();
+        
+        // Display response
+        responseDiv.style.display = 'block';
+        if (response.ok) {
+          responseDiv.className = 'response success';
+          responseDiv.innerHTML = `<strong>Success!</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
+        } else {
+          responseDiv.className = 'response error';
+          responseDiv.innerHTML = `<strong>Error:</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+      } catch (error) {
+        // Display error
+        responseDiv.style.display = 'block';
+        responseDiv.className = 'response error';
+        responseDiv.innerHTML = `<strong>Error:</strong> ${error.message}<br>Make sure the server is running at http://localhost:5001`;
+        console.error('Error:', error);
+      } finally {
+        // Reset button
+        submitBtn.textContent = 'Submit Purchase';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

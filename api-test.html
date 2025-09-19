@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Venezuelan Raffle Website API Test</h1>
+    
+    <div class="section">
+        <h2>Active Raffles</h2>
+        <button onclick="testActiveRaffles()">Test Active Raffles API</button>
+        <pre id="activeRafflesResult">Results will appear here...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Past/Completed Raffles</h2>
+        <button onclick="testPastRaffles()">Test Past Raffles API</button>
+        <pre id="pastRafflesResult">Results will appear here...</pre>
+    </div>
+
+    <script>
+        // Test active raffles endpoint
+        async function testActiveRaffles() {
+            const resultElement = document.getElementById('activeRafflesResult');
+            resultElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/raffles');
+                const data = await response.json();
+                
+                resultElement.textContent = JSON.stringify(data, null, 2);
+                
+                // Check if data format is correct
+                if (data.success === true && Array.isArray(data.data)) {
+                    console.log('Active raffles format is correct');
+                } else {
+                    console.warn('Active raffles response may have incorrect format');
+                }
+            } catch (error) {
+                resultElement.textContent = `Error: ${error.message}`;
+                console.error('Error fetching active raffles:', error);
+            }
+        }
+
+        // Test past raffles endpoint
+        async function testPastRaffles() {
+            const resultElement = document.getElementById('pastRafflesResult');
+            resultElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:5100/api/raffles/past');
+                const data = await response.json();
+                
+                resultElement.textContent = JSON.stringify(data, null, 2);
+                
+                // Check if data format is correct
+                if (data.success === true && Array.isArray(data.data)) {
+                    console.log('Past raffles format is correct');
+                } else {
+                    console.warn('Past raffles response may have incorrect format');
+                }
+            } catch (error) {
+                resultElement.textContent = `Error: ${error.message}`;
+                console.error('Error fetching past raffles:', error);
+            }
+        }
+
+        // Run tests automatically
+        window.onload = function() {
+            testActiveRaffles();
+            setTimeout(testPastRaffles, 1000); // Delay to avoid overloading
+        };
+    </script>
+</body>
+</html>

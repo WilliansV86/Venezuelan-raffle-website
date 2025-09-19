@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        h1, h2 { color: #2c3e50; }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        button:hover { background-color: #2980b9; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th { background-color: #f2f2f2; }
+        input {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        .note {
+            background-color: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Login Test Tool</h1>
+    
+    <div class="card">
+        <h2>Try Different Admin Keys</h2>
+        <div class="note">
+            <strong>Note:</strong> These tests will try to log in with different variations of the admin key.
+            This will help us identify exactly what value works with your backend.
+        </div>
+        
+        <div>
+            <h3>Standard Tests</h3>
+            <button onclick="testKey('Tusuerte2025')">Test: Tusuerte2025 (Default)</button>
+            <button onclick="testKey('tusuerte2025')">Test: tusuerte2025 (lowercase)</button>
+            <button onclick="testKey('TUSUERTE2025')">Test: TUSUERTE2025 (uppercase)</button>
+            <button onclick="testKey(' Tusuerte2025')">Test: [space]Tusuerte2025 (leading space)</button>
+            <button onclick="testKey('Tusuerte2025 ')">Test: Tusuerte2025[space] (trailing space)</button>
+        </div>
+        
+        <div>
+            <h3>Custom Test</h3>
+            <input type="text" id="customKey" placeholder="Enter custom admin key to test">
+            <button onclick="testCustomKey()">Test Custom Key</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Test Results</h2>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Admin Key</th>
+                    <th>Status</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Results will be added here -->
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="card">
+        <h2>Current localStorage</h2>
+        <div id="localStorage-status">Loading...</div>
+        <button onclick="checkStorage()">Refresh</button>
+        <button onclick="clearStorage()">Clear Admin Token</button>
+    </div>
+
+    <div class="card">
+        <h2>What To Do After Success</h2>
+        <p>If any test is successful:</p>
+        <ol>
+            <li>Note down the exact admin key that worked</li>
+            <li>Update your .env file if needed to match this key exactly</li>
+            <li><a href="http://localhost:3001/admin/raffles" target="_blank">Go to Admin Panel</a></li>
+        </ol>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkStorage();
+        });
+        
+        // Test a specific admin key
+        async function testKey(key) {
+            try {
+                const response = await fetch('http://localhost:5100/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ adminKey: key })
+                });
+                
+                const data = await response.json();
+                const success = response.ok;
+                
+                // Add result to table
+                addResultRow(key, success, data.message || (success ? 'Success' : 'Unknown error'));
+                
+                // If successful, store token
+                if (success) {
+                    localStorage.setItem('adminInfo', JSON.stringify(data));
+                    alert(`Success! Admin key "${key}" worked! Token saved to localStorage.`);
+                    checkStorage();
+                }
+                
+            } catch (error) {
+                addResultRow(key, false, error.message);
+            }
+        }
+        
+        // Test custom admin key
+        function testCustomKey() {
+            const customKey = document.getElementById('customKey').value;
+            if (customKey) {
+                testKey(customKey);
+            } else {
+                alert('Please enter a custom key to test');
+            }
+        }
+        
+        // Add a result row to the table
+        function addResultRow(key, success, message) {
+            const tbody = document.querySelector('#resultsTable tbody');
+            const row = document.createElement('tr');
+            
+            // Key cell
+            const keyCell = document.createElement('td');
+            keyCell.textContent = `"${key}"`;
+            row.appendChild(keyCell);
+            
+            // Status cell
+            const statusCell = document.createElement('td');
+            statusCell.innerHTML = success ? 
+                '<span class="success">✅ Success</span>' : 
+                '<span class="error">❌ Failed</span>';
+            row.appendChild(statusCell);
+            
+            // Message cell
+            const messageCell = document.createElement('td');
+            messageCell.textContent = message || 'No message';
+            row.appendChild(messageCell);
+            
+            tbody.prepend(row);
+        }
+        
+        // Check localStorage
+        function checkStorage() {
+            const statusDiv = document.getElementById('localStorage-status');
+            
+            try {
+                const adminInfo = localStorage.getItem('adminInfo');
+                if (!adminInfo) {
+                    statusDiv.innerHTML = '<p class="error">No admin token found in localStorage</p>';
+                    return;
+                }
+                
+                const parsed = JSON.parse(adminInfo);
+                statusDiv.innerHTML = `
+                    <p><strong>adminInfo in localStorage:</strong></p>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+            } catch (error) {
+                statusDiv.innerHTML = `<p class="error">Error reading localStorage: ${error.message}</p>`;
+            }
+        }
+        
+        // Clear localStorage
+        function clearStorage() {
+            localStorage.removeItem('adminInfo');
+            checkStorage();
+            alert('Admin token cleared from localStorage!');
+        }
+    </script>
+</body>
+</html>

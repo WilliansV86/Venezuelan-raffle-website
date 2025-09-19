@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta
+    name="description"
+    content="Web site created using create-react-app"
+  />
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Tu Suerte Venezuela</title>
+  <style>
+    /* Custom zoom effect to reduce scrolling */
+    .purchase-page-content {
+      transform: scale(0.95);
+      transform-origin: top center;
+    }
+    @media (max-width: 768px) {
+      .purchase-page-content {
+        transform: scale(0.98);
+      }
+    }
+    
+    /* Direct progress bar styles that bypass React styling pipeline */
+    /* These styles have !important to override any conflicting styles */
+    .progress-bar-green {
+      background-color: #10B981 !important;
+    }
+    .progress-bar-yellow {
+      background-color: #F59E0B !important;
+    }
+    .progress-bar-red {
+      background-color: #EF4444 !important;
+    }
+    .progress-track {
+      background-color: #374151 !important;
+    }
+  </style>
+</head>
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+</html>
