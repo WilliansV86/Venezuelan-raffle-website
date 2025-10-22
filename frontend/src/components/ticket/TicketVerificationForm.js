@@ -38,7 +38,11 @@ const TicketVerificationForm = ({ raffleId }) => {
       if (err.response) {
         // Server responded with an error
         console.error('Server error:', err.response.data);
-        setError(err.response.data?.message || `Error ${err.response.status}: ${err.response.statusText}`);
+        if (err.response.status === 404) {
+          setError(`Esta función está en proceso de despliegue. El sistema no está disponible en este momento, por favor intenta más tarde.`);
+        } else {
+          setError(err.response.data?.message || `Error ${err.response.status}: ${err.response.statusText}`);
+        }
       } else if (err.request) {
         // Request was made but no response received
         console.error('Network error:', err.request);
