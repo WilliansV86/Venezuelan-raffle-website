@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { FaTrophy, FaTicketAlt, FaUser, FaCalendarAlt, FaInfoCircle } from 'react-icons/fa';
+import { FaTrophy, FaTicketAlt, FaUser, FaCalendarAlt, FaInfoCircle, FaSearch } from 'react-icons/fa';
+import TicketVerificationForm from '../components/ticket/TicketVerificationForm';
 
 const WinnersPage = () => {
   const [pastRaffles, setPastRaffles] = useState([]);
@@ -44,6 +45,27 @@ const WinnersPage = () => {
         <p className="text-gray-300">
           Listado de todos los ganadores de nuestros sorteos anteriores
         </p>
+      </div>
+      
+      {/* Ticket Verification Section */}
+      <div className="mb-12 bg-black/30 backdrop-blur-lg rounded-xl p-6 border border-cyan-700/30 shadow-2xl shadow-cyan-400/10">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center">
+              <FaSearch className="mr-2 text-cyan-400" />
+              Verificar Propietario de Boleto
+            </h2>
+            <p className="text-gray-300">
+              Ingresa el número de boleto para verificar a qué participante pertenece
+            </p>
+          </div>
+          
+          <div className="flex-shrink-0">
+            <FaTicketAlt className="text-6xl text-cyan-400 opacity-80" />
+          </div>
+        </div>
+        
+        <TicketVerificationForm />
       </div>
 
       {loading ? (

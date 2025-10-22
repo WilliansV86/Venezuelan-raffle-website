@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { FaTrophy, FaUser, FaCalendarAlt, FaGift, FaArrowLeft } from 'react-icons/fa';
+import { FaTrophy, FaUser, FaCalendarAlt, FaGift, FaArrowLeft, FaSearch } from 'react-icons/fa';
+import TicketVerificationForm from '../components/ticket/TicketVerificationForm';
 
 const PastRaffleDetailPage = () => {
   const { id } = useParams();
@@ -235,6 +236,19 @@ const PastRaffleDetailPage = () => {
               </div>
             </div>
           )}
+          
+          {/* Ticket Verification Form */}
+          <div className="bg-black/30 backdrop-blur-lg rounded-xl p-6 border border-cyan-700/30 shadow-2xl shadow-cyan-400/10">
+            <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+              <FaSearch className="mr-2 text-cyan-400" />
+              Verificar Propietario de Boleto
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Ingresa un número de boleto para verificar a qué participante pertenece en este sorteo.
+            </p>
+            
+            <TicketVerificationForm raffleId={id} />
+          </div>
           
           {/* Raffle Statistics */}
           <div className="bg-black/30 backdrop-blur-lg rounded-xl p-6 border border-gray-700/50 shadow-2xl shadow-blue-400/10">
