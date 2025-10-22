@@ -5,8 +5,8 @@ import apiConfig from '../config/apiConfig';
 // This allows us to use different URLs for development and production
 const api = axios.create({
   baseURL: apiConfig.API_URL.replace('/api', ''), // Remove '/api' suffix as it's added in endpoints
-  timeout: 60000, // 60-second timeout for cold starts
-  timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, asegúrese de que el servidor backend esté funcionando.'
+  timeout: 15000, // Reduced from 60 seconds to 15 seconds for better user feedback
+  timeoutErrorMessage: 'Error de conexión: No se puede conectar al servidor. Por favor, intente de nuevo más tarde.'
 });
 
 // Add an interceptor to automatically include the auth token in every request

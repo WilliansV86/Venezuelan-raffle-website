@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { purchaseTickets, verifyTicket, storage } = require('../controllers/ticketController');
+const { purchaseTickets, verifyTicket, verifyTicketsByCedula, findTicketByNumber, storage } = require('../controllers/ticketController');
 
 // Setup multer for file uploads
 const upload = multer({
@@ -21,5 +21,7 @@ const upload = multer({
 // Routes
 router.post('/purchase', upload.single('paymentProof'), purchaseTickets);
 router.post('/verify', verifyTicket);
+router.get('/verify/:cedula', verifyTicketsByCedula);
+router.get('/find/:ticketNumber', findTicketByNumber);
 
 module.exports = router;

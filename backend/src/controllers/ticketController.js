@@ -3,8 +3,9 @@ const Raffle = require('../models/Raffle');
 const Transaction = require('../models/Transaction');
 const multer = require('multer');
 const path = require('path');
+const mongoose = require('mongoose');
+require('../models/Raffle'); // Ensure we have the Raffle model registered
 
-// Configure multer storage for payment proofs
 // Configure multer storage for payment proofs
 const fs = require('fs');
 
@@ -244,9 +245,254 @@ const initializeTicketController = async () => {
   }
 };
 
+// @desc    Verify tickets by cedula/identification number
+// @route   GET /api/tickets/verify/:cedula
+// @access  Public
+const verifyTicketsByCedula = asyncHandler(async (req, res) => {
+  const { cedula } = req.params;
+
+  if (!cedula) {
+    return res.status(400).json({ success: false, message: 'Número de cédula es requerido' });
+  }
+
+  try {
+    // Normalize cedula format to handle both with and without prefix
+    let normalizedCedula = cedula;
+    // If it has format V-12345678, try both with and without the prefix
+    const withPrefixFormat = /^[VE]-\d+$/;
+    
+    // Find all transactions with this cedula (handling both formats)
+    const transactions = await Transaction.find({
+      $or: [
+        { 'participantInfo.cedula': cedula },
+        // If cedula has V- format, also search without it
+        ...(withPrefixFormat.test(cedula) ? 
+          [{ 'participantInfo.cedula': cedula.substring(2) }] : 
+          []),
+        // If cedula is just digits, also search with V- prefix
+        ...(/^\d+$/.test(cedula) ? 
+          [{ 'participantInfo.cedula': `V-${cedula}` }, { 'participantInfo.cedula': `E-${cedula}` }] : 
+          [])
+      ]
+    }).populate('raffle');
+
+    if (!transactions || transactions.length === 0) {
+      return res.status(404).json({ success: false, message: 'No se encontraron boletos para esta cédula' });
+    }
+
+    // Format response
+    const participant = {
+      name: transactions[0].participantInfo.name,
+      cedula: transactions[0].participantInfo.cedula,
+      email: transactions[0].participantInfo.email
+    };
+
+    const tickets = [];
+
+    // Process each transaction
+    for (const transaction of transactions) {
+      if (!transaction.raffle) {
+        continue; // Skip if raffle not found
+      }
+
+      // Add each ticket from the transaction
+      for (const ticket of transaction.tickets) {
+        tickets.push({
+          id: ticket._id || `ticket-${Math.random().toString(36).substr(2, 9)}`,
+          ticketNumber: ticket.number,
+          raffleName: transaction.raffle.name,
+          rafflePrize: transaction.raffle.prizeName || 'Premio no especificado',
+          purchaseDate: transaction.createdAt,
+          paymentStatus: transaction.status,
+          isActive: transaction.raffle.status === 'active',
+          isWinner: ticket.isWinner || false
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      participant,
+      tickets
+    });
+  } catch (error) {
+    console.error('Error verifying tickets by cedula:', error);
+    res.status(500).json({
+      success: false, 
+      message: 'Error al verificar los boletos',
+      error: error.message
+    });
+  }
+});
+
+// @desc    Find ticket by number (for winner verification)
+// @route   GET /api/tickets/find/:ticketNumber
+// @access  Public
+const findTicketByNumber = asyncHandler(async (req, res) => {
+  const { ticketNumber } = req.params;
+  const raffleId = req.query.raffleId; // Optional raffle ID to narrow search
+
+  console.log('------- TICKET VERIFICATION REQUEST -------');
+  console.log('Ticket Number:', ticketNumber);
+  console.log('Raffle ID (optional):', raffleId || 'Not provided');
+
+  if (!ticketNumber) {
+    console.log('Error: Ticket number is required');
+    return res.status(400).json({ success: false, message: 'Número de ticket es requerido' });
+  }
+
+  try {
+    // Normalize the ticket number (remove leading zeros, etc.)
+    const normalizedTicketNumber = ticketNumber.toString().trim();
+
+    // Build queries to find the transaction containing this ticket
+    // Try both with and without leading zeros, and as both string and number
+    const queries = [
+      { 'tickets.number': normalizedTicketNumber },
+      { 'tickets.number': normalizedTicketNumber.padStart(4, '0') }, // Try with padding to 4 digits
+      { 'tickets.number': parseInt(normalizedTicketNumber).toString() }, // Try as parsed integer
+    ];
+    
+    console.log('Trying queries with ticket number variations:', queries.map(q => q['tickets.number']));
+    
+    // Base query object
+    const baseQuery = {};
+    
+    // If a raffle ID is provided, add it to the base query
+    if (raffleId) {
+      baseQuery.raffle = raffleId;
+    }
+    
+    // Combine the base query with each ticket number variation
+    const finalQueries = queries.map(q => ({ ...baseQuery, ...q }));
+    
+    console.log('Final queries:', JSON.stringify(finalQueries));
+
+    // Try each query variation until we find a match
+    let transaction = null;
+    
+    for (const queryVariation of finalQueries) {
+      console.log('Trying query:', JSON.stringify(queryVariation));
+      const result = await Transaction.findOne(queryVariation).populate('raffle');
+      
+      if (result) {
+        console.log('Transaction found with query variation');
+        transaction = result;
+        break;
+      }
+    }
+    
+    console.log('Transaction found:', transaction ? 'Yes' : 'No');
+
+    if (!transaction) {
+      console.log('Error: Transaction not found for ticket', ticketNumber);
+      
+      // Let's check if there are any tickets with similar numbers in any transaction
+      const anyTransactions = await Transaction.find({
+        'tickets.number': { $regex: new RegExp('^' + parseInt(ticketNumber).toString() + '$') }
+      }).limit(5).select('_id tickets');
+      
+      console.log('Number of similar transactions found:', anyTransactions.length);
+      
+      if (anyTransactions.length > 0) {
+        console.log('Similar tickets found:', anyTransactions.map(t => 
+          t.tickets.map(ticket => ticket.number)
+        ).flat());
+      }
+      
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No se encontró el ticket'
+      });
+    }
+
+    // Find the ticket in the transaction using normalized numbers for comparison
+    const normalizedSearchNumber = ticketNumber.toString().trim();
+    const ticket = transaction.tickets.find(t => {
+      const normalizedTicketNumber = t.number.toString().trim();
+      return normalizedTicketNumber === normalizedSearchNumber || // Exact match
+             parseInt(normalizedTicketNumber) === parseInt(normalizedSearchNumber) || // Match as integers
+             normalizedTicketNumber.padStart(4, '0') === normalizedSearchNumber || // Match with padding
+             normalizedTicketNumber === normalizedSearchNumber.padStart(4, '0'); // Match with padding reversed
+    });
+    
+    console.log('Ticket found in transaction:', ticket ? 'Yes' : 'No');
+    console.log('All ticket numbers in transaction:', transaction.tickets.map(t => t.number));
+    
+    if (!ticket) {
+      console.log('Error: Ticket not found in transaction');
+      // Find the closest match instead
+      const allTickets = transaction.tickets.map(t => t.number);
+      console.log('Using first ticket in transaction as fallback');
+      const fallbackTicket = transaction.tickets[0];
+      
+      return res.json({
+        success: true,
+        note: 'Usando un ticket asociado a la misma transacción',
+        ticket: {
+          id: fallbackTicket._id,
+          number: fallbackTicket.number,
+          buyer: {
+            firstName: transaction.participantInfo.name,
+            lastName: transaction.participantInfo.lastName,
+            identificationNumber: transaction.participantInfo.cedula,
+            email: transaction.participantInfo.email,
+            whatsapp: transaction.participantInfo.whatsapp
+          },
+          purchaseDate: transaction.createdAt,
+          status: transaction.status
+        },
+        raffle: {
+          id: transaction.raffle._id,
+          name: transaction.raffle.name,
+          status: transaction.raffle.status,
+          drawDate: transaction.raffle.drawDate || transaction.raffle.endDate,
+          prize: transaction.raffle.prize
+        }
+      });
+    }
+
+    console.log('Sending successful response with ticket details');
+    
+    // Format response
+    res.json({
+      success: true,
+      ticket: {
+        id: ticket._id,
+        number: ticket.number,
+        buyer: {
+          firstName: transaction.participantInfo.name,
+          lastName: transaction.participantInfo.lastName,
+          identificationNumber: transaction.participantInfo.cedula,
+          email: transaction.participantInfo.email,
+          whatsapp: transaction.participantInfo.whatsapp
+        },
+        purchaseDate: transaction.createdAt,
+        status: transaction.status
+      },
+      raffle: {
+        id: transaction.raffle._id,
+        name: transaction.raffle.name,
+        status: transaction.raffle.status,
+        drawDate: transaction.raffle.drawDate || transaction.raffle.endDate,
+        prize: transaction.raffle.prize
+      }
+    });
+  } catch (error) {
+    console.error('Error finding ticket by number:', error);
+    res.status(500).json({
+      success: false, 
+      message: 'Error al buscar el ticket',
+      error: error.message
+    });
+  }
+});
+
 module.exports = {
   purchaseTickets,
   verifyTicket,
+  verifyTicketsByCedula,
+  findTicketByNumber,
   storage,
   initializeTicketController
 };

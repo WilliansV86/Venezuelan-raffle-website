@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { FaTicketAlt, FaCheck, FaTimes, FaClock, FaTrophy } from 'react-icons/fa';
+import apiConfig from '../config/apiConfig';
 
 const VerifyTicketsPage = () => {
   const [cedula, setCedula] = useState('');
@@ -31,14 +32,60 @@ const VerifyTicketsPage = () => {
     setLoading(true);
     
     try {
-      const response = await axios.get(`/api/tickets/verify/${encodeURIComponent(cedula)}`);
-      setTicketData(response.data);
+      // Use the apiConfig to ensure consistent API URL references
+      const response = await axios.get(`${apiConfig.API_URL}/tickets/verify/${encodeURIComponent(cedula)}`);
+      const responseData = response.data;
+      
+      if (!responseData.success) {
+        setError(responseData.message || 'Error al verificar los tickets');
+        return;
+      }
+      
+      const participant = responseData.participant;
+      const ticketsData = responseData.tickets;
+      
+      // Process tickets and group by raffle
+      const raffleMap = {};
+      
+      for (const ticket of ticketsData) {
+        if (!ticket.raffleName) {
+          continue; // Skip if missing raffle info
+        }
+        
+        const raffleName = ticket.raffleName;
+        if (!raffleMap[raffleName]) {
+          raffleMap[raffleName] = {
+            id: `raffle-${Math.random().toString(36).substr(2, 9)}`,
+            name: raffleName,
+            prize: ticket.rafflePrize || 'Premio no especificado',
+            isActive: ticket.isActive,
+            paymentStatus: ticket.paymentStatus,
+            purchaseDate: ticket.purchaseDate,
+            tickets: []
+          };
+        }
+
+        // Add the ticket to the raffle group
+        raffleMap[raffleName].tickets.push({
+          id: ticket.id || `ticket-${Math.random().toString(36).substr(2, 9)}`,
+          number: ticket.ticketNumber,
+          isWinner: ticket.isWinner || false
+        });
+      }
+      
+      // Convert to array for easier rendering
+      const groupedTickets = Object.values(raffleMap);
+      
+      setTicketData({
+        participant: participant,
+        tickets: groupedTickets
+      });
     } catch (err) {
       console.error('Error verifying tickets:', err);
       if (err.response && err.response.data) {
-        setError(err.response.data.message || 'Error al verificar los boletos');
+        setError(err.response.data.message || 'Error al verificar los tickets');
       } else {
-        setError('Error al verificar los boletos. Por favor, intente de nuevo más tarde.');
+        setError('Error al verificar los tickets. Por favor, intente de nuevo más tarde.');
       }
     } finally {
       setLoading(false);
@@ -70,9 +117,9 @@ const VerifyTicketsPage = () => {
   return (
     <div className="container mx-auto px-4 py-10 max-w-6xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-white mb-2">Verificar Mis Boletos</h1>
+        <h1 className="text-3xl font-bold text-white mb-2">Verificar Mis Tickets</h1>
         <p className="text-gray-300">
-          Introduce tu número de cédula para verificar tus boletos comprados
+          Introduce tu número de cédula para verificar tus tickets comprados
         </p>
       </div>
 
@@ -94,14 +141,14 @@ const VerifyTicketsPage = () => {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-purple-800 text-white py-3 rounded-lg hover:from-purple-700 hover:to-purple-900 transition duration-300 flex items-center justify-center"
+            className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 text-black font-semibold py-3 rounded-lg hover:from-yellow-500 hover:to-yellow-700 transition duration-300 flex items-center justify-center"
           >
             {loading ? (
               <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
               <>
                 <FaTicketAlt className="mr-2" />
-                Verificar Boletos
+                Verificar Tickets
               </>
             )}
           </button>
@@ -134,47 +181,58 @@ const VerifyTicketsPage = () => {
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-white mb-4">Boletos Comprados</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">Tus Tickets de Rifa</h2>
           
           <div className="grid grid-cols-1 gap-4">
-            {ticketData.tickets.map(ticket => (
+            {ticketData.tickets.map(raffle => (
               <div 
-                key={ticket.id} 
-                className={`bg-black/30 backdrop-blur-lg rounded-xl p-4 shadow-lg border ${ticket.isWinner ? 'border-yellow-500 shadow-yellow-400/20' : 'border-gray-700/50'}`}
+                key={raffle.id} 
+                className={`bg-black/30 backdrop-blur-lg rounded-xl p-4 shadow-lg border ${raffle.tickets.some(t => t.isWinner) ? 'border-yellow-500 shadow-yellow-400/20' : 'border-gray-700/50'}`}
               >
-                <div className="flex flex-col md:flex-row justify-between">
-                  <div className="mb-4 md:mb-0">
-                    <h3 className="text-xl font-bold text-white">{ticket.raffleName}</h3>
-                    <p className="text-gray-300">{ticket.rafflePrize}</p>
-                    <div className="mt-2">
-                      <span className="bg-purple-900/70 text-purple-300 text-sm py-1 px-3 rounded-full">
-                        Boleto #{ticket.ticketNumber}
-                      </span>
-                      <span className="ml-3 text-gray-400 text-sm">
-                        Comprado el {formatDate(ticket.purchaseDate)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col justify-center items-end">
-                    <div className="flex items-center mb-2">
-                      {getPaymentStatusIcon(ticket.paymentStatus)}
-                      <span className="ml-2 text-gray-300">
-                        Pago: {getPaymentStatusText(ticket.paymentStatus)}
+                <div className="flex flex-col">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{raffle.name}</h3>
+                      <p className="text-gray-300">{raffle.prize}</p>
+                      <span className="text-gray-400 text-sm block mt-1">
+                        Comprado el {formatDate(raffle.purchaseDate)}
                       </span>
                     </div>
                     
-                    <div>
-                      {ticket.isWinner ? (
-                        <div className="flex items-center text-yellow-400">
-                          <FaTrophy className="mr-1" />
-                          <span className="font-bold">¡GANADOR!</span>
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center mb-2">
+                        {getPaymentStatusIcon(raffle.paymentStatus)}
+                        <span className="ml-2 text-gray-300">
+                          Pago: {getPaymentStatusText(raffle.paymentStatus)}
+                        </span>
+                      </div>
+                      
+                      <div>
+                        {raffle.tickets.some(t => t.isWinner) ? (
+                          <div className="flex items-center text-yellow-400">
+                            <FaTrophy className="mr-1" />
+                            <span className="font-bold">¡GANADOR!</span>
+                          </div>
+                        ) : raffle.isActive ? (
+                          <span className="text-cyan-400">Sorteo Activo</span>
+                        ) : (
+                          <span className="text-gray-400">Sorteo Finalizado</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <h4 className="text-white font-bold mb-2">Tus números de ticket:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {raffle.tickets.map(ticket => (
+                        <div 
+                          key={ticket.id} 
+                          className={`${ticket.isWinner ? 'bg-yellow-500' : 'bg-blue-600'} text-white font-bold py-2 px-4 rounded-lg shadow-md inline-block`}
+                        >
+                          {ticket.number}
                         </div>
-                      ) : ticket.isActive ? (
-                        <span className="text-cyan-400">Sorteo Activo</span>
-                      ) : (
-                        <span className="text-gray-400">Sorteo Finalizado</span>
-                      )}
+                      ))}
                     </div>
                   </div>
                 </div>

@@ -84,6 +84,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
             src={imageUrl} 
             alt={raffle.title || 'Ver detalles del sorteo'} 
             className="w-full h-[600px] object-cover rounded-lg shadow-lg"
+            loading="lazy"
           />
         </Link>
         <div className="p-6 text-white flex flex-col justify-center items-center">
@@ -131,4 +132,3 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
 };
 
 export default RaffleCard;
-

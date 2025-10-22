@@ -121,7 +121,7 @@ const PaymentInstructions = ({ purchaseData, orderId, onUploadComplete, onBack }
             </div>
             <ul className="list-disc pl-6 text-sm">
               <li>Banco: Provincial (0108)</li>
-              <li>Teléfono: 04241378533</li>
+              <li>Teléfono: 04142881359</li>
               <li>CI: V-15605407</li>
               <li>Monto: Bs. equivalentes a ${purchaseData.totalPrice.toFixed(2)}</li>
             </ul>

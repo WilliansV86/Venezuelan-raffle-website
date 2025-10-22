@@ -8,7 +8,7 @@ const TermsModal = ({ onAccept }) => {
         <div className="text-gray-300 space-y-4 max-h-80 overflow-y-auto pr-4">
           <p>1. Para participar en el sorteo, debes ser mayor de 18 años.</p>
           <p>2. El pago debe ser confirmado para que tu participación sea válida. Guarda tu comprobante de pago.</p>
-          <p>3. Los premios no son transferibles y no pueden ser cambiados por efectivo.</p>
+          <p>3. Los premios no son transferibles y no pueden ser cambiados por efectivo,los premios serán transferidos vía pago móvil o Zelle.</p>
           <p>4. El ganador será contactado a través de los datos proporcionados. Es tu responsabilidad asegurar que la información sea correcta.</p>
           <p>5. Nos reservamos el derecho de modificar los términos y condiciones en cualquier momento.</p>
           <p>6. Al participar, aceptas que tu nombre y apellido puedan ser publicados en nuestras redes sociales si resultas ganador.</p>

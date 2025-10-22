@@ -12,7 +12,7 @@ const HomePage = () => {
   const [pastRaffle, setPastRaffle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Function to fetch the latest raffles data
   const fetchRaffles = async () => {
@@ -23,23 +23,17 @@ const HomePage = () => {
         raffleService.getPastRaffles(),
       ]);
 
-      // More detailed debugging for active raffles
-      console.log('Active raffles response structure:', JSON.stringify(activeRes));
-      
+      // Set active raffle data without excessive logging
       if (activeRes && activeRes.success && activeRes.data && activeRes.data.length > 0) {
-        console.log('Active raffle found:', activeRes.data[0].title || activeRes.data[0].name);
-        console.log('Full active raffle data:', JSON.stringify(activeRes.data[0]));
         setActiveRaffle(activeRes.data[0]);
       } else {
-        console.log('No active raffles found. Response:', JSON.stringify(activeRes));
         setActiveRaffle(null);
       }
 
+      // Set past raffle data without excessive logging
       if (pastRes && pastRes.success && pastRes.data && pastRes.data.length > 0) {
-        console.log('Past raffle found:', pastRes.data[0].title);
         setPastRaffle(pastRes.data[0]);
       } else {
-        console.log('No past raffles found');
         setPastRaffle(null);
       }
     } catch (err) {
@@ -56,7 +50,6 @@ const HomePage = () => {
     
     // Set up a refresh interval that runs every 30 seconds
     const refreshInterval = setInterval(() => {
-      console.log('Auto-refreshing raffle data...');
       fetchRaffles();
     }, 30000); // 30 seconds
     
@@ -69,7 +62,6 @@ const HomePage = () => {
     // This will run when the user returns to this page after navigating away
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('HomePage is visible, refreshing raffle data...');
         fetchRaffles();
       }
     };
@@ -80,6 +72,15 @@ const HomePage = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
+  }, []);
+
+  // Delay confetti animation to improve initial page load performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowConfetti(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -166,7 +167,7 @@ const HomePage = () => {
         
         {/* WhatsApp floating button */}
         <a 
-          href="https://wa.me/584241378533" 
+          href="https://wa.me/584142881359" 
           target="_blank" 
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-full shadow-xl hover:shadow-green-500/20 hover:from-green-500 hover:to-green-600 transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center z-50 border-2 border-green-400/20"
@@ -184,4 +185,3 @@ const HomePage = () => {
 };
 
 export default HomePage;
-

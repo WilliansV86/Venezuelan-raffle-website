@@ -3,6 +3,8 @@ const Transaction = require('../models/Transaction');
 const Raffle = require('../models/Raffle');
 const { sendBrevoEmail: sendEmail } = require('../utils/brevoService');
 const { generateApprovalEmail } = require('../utils/emailTemplates');
+const { uploadToCloudinary } = require('../utils/cloudinaryConfig');
+const fs = require('fs');
 
 // @desc    Get all transactions
 // @route   GET /api/transactions
@@ -28,16 +30,36 @@ const createTransaction = asyncHandler(async (req, res) => {
     totalAmount,
   } = req.body;
 
-  const paymentScreenshot = req.file ? req.file.path : null;
-
+  let paymentScreenshot = null;
+  
   if (!raffleId || !name || !lastName || !email || !cedula || !whatsapp || !paymentMethod || !totalAmount) {
     res.status(400);
     throw new Error('Por favor, complete todos los campos requeridos.');
   }
 
-  if (!paymentScreenshot) {
+  if (!req.file) {
     res.status(400);
     throw new Error('El capture del pago es requerido.');
+  }
+  
+  // Upload the file to Cloudinary
+  try {
+    const result = await uploadToCloudinary(req.file.path, {
+      folder: 'payment_screenshots',
+      resource_type: 'image',
+    });
+    
+    // Set payment screenshot to the Cloudinary URL
+    paymentScreenshot = result.secure_url;
+    
+    // Delete the local file after upload
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error('Error deleting local file:', err);
+    });
+  } catch (error) {
+    console.error('Error uploading to Cloudinary:', error);
+    res.status(500);
+    throw new Error('Error al subir la imagen del comprobante. Por favor, intenta nuevamente.');
   }
 
   const raffle = await Raffle.findById(raffleId);

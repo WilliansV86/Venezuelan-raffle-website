@@ -48,6 +48,7 @@ const CustomPurchasePage = () => {
     };
   }, [paymentProofPreview]);
   
+  
   // Adjust ticket quantity when payment method changes
   useEffect(() => {
     if (raffle) {
@@ -485,7 +486,7 @@ const CustomPurchasePage = () => {
               {selectedPayment === 'pago-movil' && (
                 <div className="text-center">
                   <p className="font-mono text-xl text-yellow-300 font-medium select-all bg-black/20 py-3 px-4 rounded-md">
-                    Provincial (0108) V-15605407 04241378533
+                    Provincial (0108) V-15605407 04142881359
                   </p>
                 </div>
               )}
@@ -702,7 +703,7 @@ const CustomPurchasePage = () => {
       
       {/* WhatsApp floating button */}
       <a 
-        href="https://wa.me/584241378533" 
+        href="https://wa.me/584142881359" 
         target="_blank" 
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-full shadow-xl hover:shadow-green-500/20 hover:from-green-500 hover:to-green-600 transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center z-50 border-2 border-green-400/20"

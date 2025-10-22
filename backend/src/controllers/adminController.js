@@ -75,6 +75,27 @@ const getAdminTransactions = asyncHandler(async (req, res) => {
   res.json(transactions);
 });
 
+// @desc    Clear all transactions
+// @route   DELETE /api/admin/transactions/clear
+// @access  Private/Admin
+const clearTransactions = asyncHandler(async (req, res) => {
+  try {
+    await Transaction.deleteMany({});
+    console.log('All transactions have been cleared.');
+    res.status(200).json({ 
+      success: true, 
+      message: 'All transactions have been cleared successfully.' 
+    });
+  } catch (error) {
+    console.error('Error clearing transactions:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error clearing transactions.', 
+      error: error.message 
+    });
+  }
+});
+
 // @desc    Create a raffle
 // @route   POST /api/admin/raffles
 // @access  Private/Admin
@@ -161,4 +182,12 @@ const updateTransactionStatus = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { authAdmin, getAdminRaffles, createRaffle, getAdminTransactions, verifyAdminKey, updateTransactionStatus };
+module.exports = { 
+  authAdmin, 
+  getAdminRaffles, 
+  createRaffle, 
+  getAdminTransactions, 
+  verifyAdminKey, 
+  updateTransactionStatus,
+  clearTransactions
+};

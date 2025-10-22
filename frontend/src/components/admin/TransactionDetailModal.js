@@ -11,6 +11,13 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   // Construct the full URL for the payment proof image
   const getImageUrl = (filePath) => {
     if (!filePath) return null;
+    
+    // If it's already a complete URL (Cloudinary), return it as is
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    
+    // Handle local file paths (legacy support)
     // The backend serves the 'uploads' folder. We need to get the relative path from there.
     const parts = filePath.replace(/\\/g, '/').split('/');
     const uploadsIndex = parts.lastIndexOf('uploads');
@@ -90,6 +97,10 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
                     src={imageUrl} 
                     alt="Comprobante de pago" 
                     className="w-full rounded-lg border-2 border-gray-600 group-hover:border-cyan-400 transition-all duration-300 transform group-hover:scale-105"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/images/payment-placeholder.svg';
+                    }}
                   />
                 </a>
               </div>

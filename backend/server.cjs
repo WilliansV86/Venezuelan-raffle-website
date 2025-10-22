@@ -15,6 +15,9 @@ const path = require('path');
 // Load environment variables from .env file FIRST.
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+// Initialize Cloudinary configuration
+require('./src/utils/cloudinaryConfig');
+
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./src/config/db.js');

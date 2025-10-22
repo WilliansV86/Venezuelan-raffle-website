@@ -6,7 +6,7 @@ const SocialLinks = () => {
     { icon: <FaInstagram />, href: 'https://instagram.com/tusuerteestaaquive', name: 'Instagram', color: 'text-[#E1306C]' },
     { icon: <FaTiktok />, href: 'https://tiktok.com/@tusuerte.estaaqui', name: 'TikTok', color: 'text-white' }, // Using white for TikTok for best visibility on a dark background
     { icon: <FaFacebook />, href: 'https://www.facebook.com/profile.php?id=Tusuerte%20Estaaqui', name: 'Facebook', color: 'text-[#1877F2]' },
-    { icon: <FaWhatsapp />, href: 'https://wa.me/584241378533', name: 'WhatsApp', color: 'text-[#25D366]' }, // WhatsApp number updated
+    { icon: <FaWhatsapp />, href: 'https://wa.me/584142881359', name: 'WhatsApp', color: 'text-[#25D366]' }, // WhatsApp number updated
   ];
 
   return (

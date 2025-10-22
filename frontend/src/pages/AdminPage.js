@@ -13,7 +13,7 @@ import ErrorAlert from '../components/common/ErrorAlert';
 // Transaction components
 import TransactionTable from '../components/admin/TransactionTable';
 import TransactionDetailModal from '../components/admin/TransactionDetailModal';
-import { FaReceipt, FaCube, FaSync } from 'react-icons/fa';
+import { FaReceipt, FaCube, FaSync, FaTrash } from 'react-icons/fa';
 
 const AdminPage = () => {
   const { auth, logout } = useAuth();
@@ -35,6 +35,10 @@ const AdminPage = () => {
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [transactionsError, setTransactionsError] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+  // State for clear transactions confirmation
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearingTransactions, setClearingTransactions] = useState(false);
 
     // Effect to redirect if not authenticated
   useEffect(() => {
@@ -84,6 +88,28 @@ const AdminPage = () => {
       setTransactionsLoading(false);
     }
   }, [adminInfo?.token]);
+
+  // Function to clear all transactions
+  const clearTransactions = async () => {
+    if (!adminInfo?.token) return;
+    setClearingTransactions(true);
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${adminInfo.token}`,
+        },
+      };
+      await api.delete('/api/admin/transactions/clear', config);
+      setTransactions([]);
+      setShowClearConfirm(false);
+      alert('Todas las transacciones han sido eliminadas exitosamente.');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Error al eliminar las transacciones.';
+      alert(`Error: ${message}`);
+    } finally {
+      setClearingTransactions(false);
+    }
+  };
 
   // Effect to fetch data when view or auth changes, with polling for transactions
   useEffect(() => {
@@ -212,6 +238,37 @@ const AdminPage = () => {
           <div>
             {transactionsLoading && <LoadingSpinner message="Cargando transacciones..." />}
             {transactionsError && <ErrorAlert message={transactionsError} />}
+            
+            {/* Clear Transactions Button */}
+            <div className="flex justify-end mb-4">
+              {!showClearConfirm ? (
+                <button
+                  onClick={() => setShowClearConfirm(true)}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors duration-300"
+                >
+                  <FaTrash />
+                  <span>Limpiar Historial</span>
+                </button>
+              ) : (
+                <div className="flex items-center space-x-2 bg-gray-800 p-3 rounded-lg">
+                  <span className="text-white">¿Confirmar eliminación de todas las transacciones?</span>
+                  <button
+                    onClick={clearTransactions}
+                    disabled={clearingTransactions}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
+                  >
+                    {clearingTransactions ? 'Eliminando...' : 'Sí, Eliminar Todo'}
+                  </button>
+                  <button
+                    onClick={() => setShowClearConfirm(false)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+            
             {!transactionsLoading && !transactionsError && (
               <TransactionTable 
                 transactions={transactions} 

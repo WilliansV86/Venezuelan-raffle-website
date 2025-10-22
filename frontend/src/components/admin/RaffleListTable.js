@@ -19,7 +19,7 @@ const RaffleListTable = ({ raffles, onPromote, onDemote, onSetToDraft, onEdit, o
       // Fetch stats for each raffle in parallel
       await Promise.all(raffles.map(async (raffle) => {
         try {
-          const response = await axios.get(`http://localhost:5100/api/raffles/${raffle._id}/stats`);
+          const response = await axios.get(`${apiConfig.API_URL}/raffles/${raffle._id}/stats`);
           const stats = response.data.data || response.data;
           
           // Store the stats with raffle ID as key
@@ -50,7 +50,7 @@ const RaffleListTable = ({ raffles, onPromote, onDemote, onSetToDraft, onEdit, o
       // Fetch stats for each raffle in parallel
       await Promise.all(raffles.map(async (raffle) => {
         try {
-          const response = await axios.get(`http://localhost:5100/api/raffles/${raffle._id}/stats`);
+          const response = await axios.get(`${apiConfig.API_URL}/raffles/${raffle._id}/stats`);
           const stats = response.data.data || response.data;
           
           // Store the stats with raffle ID as key

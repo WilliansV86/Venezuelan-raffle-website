@@ -86,7 +86,7 @@ const PaymentConfirmation = ({ orderData }) => {
         </Link>
         
         <a 
-          href={`https://wa.me/584141234567?text=Hola,%20acabo%20de%20comprar%20boletos%20para%20el%20sorteo.%20Mi%20número%20de%20orden%20es:%20${orderData.orderId}`}
+          href={`https://wa.me/584142881359?text=Hola,%20acabo%20de%20comprar%20boletos%20para%20el%20sorteo.%20Mi%20número%20de%20orden%20es:%20${orderData.orderId}`}
           target="_blank"
           rel="noopener noreferrer"
           className="btn bg-green-500 hover:bg-green-600 text-white flex items-center justify-center"
