@@ -22,38 +22,14 @@ const TicketVerificationForm = ({ raffleId }) => {
     
     setLoading(true);
     
-    try {
-      // Use direct API URL to ensure we're hitting the right endpoint
-      const response = await axios.get(`${apiConfig.API_URL}/tickets/find/${ticketNumber}${raffleId ? `?raffleId=${raffleId}` : ''}`);
-      console.log('Verification response:', response.data);
-      
-      if (response.data.success) {
-        setResult(response.data);
-      } else {
-        setError(response.data.message || 'No se encontró información para este número de ticket. Por favor intenta otro número.');
-      }
-    } catch (err) {
-      console.error('Error verifying ticket:', err);
-      // More detailed error handling
-      if (err.response) {
-        // Server responded with an error
-        console.error('Server error:', err.response.data);
-        if (err.response.status === 404) {
-          setError(`Esta función está en proceso de despliegue. El sistema no está disponible en este momento, por favor intenta más tarde.`);
-        } else {
-          setError(err.response.data?.message || `Error ${err.response.status}: ${err.response.statusText}`);
-        }
-      } else if (err.request) {
-        // Request was made but no response received
-        console.error('Network error:', err.request);
-        setError('Error de conexión. No se pudo conectar con el servidor.');
-      } else {
-        // Something else happened
-        setError('Error al verificar. Por favor intente de nuevo.');
-      }
-    } finally {
+    // Simulate processing
+    setTimeout(() => {
       setLoading(false);
-    }
+      setError('Esta función estará disponible pronto. Estamos trabajando para implementarla en los próximos días.');
+    }, 1500);
+    
+    // Log for debugging purposes only
+    console.log('Ticket verification in development. Ticket:', ticketNumber);
   };
 
   return (
