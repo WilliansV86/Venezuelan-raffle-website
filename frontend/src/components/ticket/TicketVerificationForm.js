@@ -22,14 +22,33 @@ const TicketVerificationForm = ({ raffleId }) => {
     
     setLoading(true);
     
-    // Simulate processing
-    setTimeout(() => {
+    try {
+      console.log('Calling API:', `${apiConfig.API_URL}/tickets/find/${ticketNumber}${raffleId ? `?raffleId=${raffleId}` : ''}`);
+      
+      const response = await axios.get(
+        `${apiConfig.API_URL}/tickets/find/${ticketNumber}${raffleId ? `?raffleId=${raffleId}` : ''}`
+      );
+      
+      console.log('Response received:', response.data);
+      
+      if (response.data && response.data.success) {
+        setResult(response.data);
+      } else {
+        setError(response.data?.message || 'No se encontró información para este número de ticket');
+      }
+    } catch (err) {
+      console.error('Error verifying ticket:', err);
+      
+      if (err.response && err.response.status === 404) {
+        setError(`No se encontró el boleto #${ticketNumber}. Por favor verifica el número e intenta nuevamente.`);
+      } else if (!err.response || err.response.status >= 500) {
+        setError('El servicio de verificación está temporalmente no disponible. Por favor intenta más tarde.');
+      } else {
+        setError('Error al verificar el boleto. Por favor intenta nuevamente.');
+      }
+    } finally {
       setLoading(false);
-      setError('Esta función estará disponible pronto. Estamos trabajando para implementarla en los próximos días.');
-    }, 1500);
-    
-    // Log for debugging purposes only
-    console.log('Ticket verification in development. Ticket:', ticketNumber);
+    }
   };
 
   return (
