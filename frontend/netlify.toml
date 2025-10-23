@@ -1,3 +1,9 @@
 [build]
   command = "CI= npm run build"
   publish = "build"
+
+# Redirects for Single Page Application
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

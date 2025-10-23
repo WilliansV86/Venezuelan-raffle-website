@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { FaSpinner, FaTicketAlt } from 'react-icons/fa';
-import apiConfig from '../../config/apiConfig';
 
 const SampleTickets = ({ onSelectTicket }) => {
   const [loading, setLoading] = useState(true);
