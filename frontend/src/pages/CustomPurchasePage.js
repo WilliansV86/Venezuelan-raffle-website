@@ -286,6 +286,15 @@ const CustomPurchasePage = () => {
     // Redirect to home or another page after closing the modal
     window.location.href = '/';
   };
+  
+  // Terms modal functions
+  const openTerms = () => {
+    setShowTerms(true);
+  };
+  
+  const closeTerms = () => {
+    setShowTerms(false);
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Cargando...</div>;
@@ -720,7 +729,7 @@ const CustomPurchasePage = () => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
           <div className="bg-gray-900 border border-cyan-800 rounded-lg shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col">
             <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-6 py-4 border-b border-cyan-800/30 flex justify-between items-center sticky top-0">
-              <h3 className="text-xl text-cyan-300 font-bold">Términos y Condiciones</h3>
+              <h3 className="text-xl text-yellow-400 font-bold">Términos y Condiciones</h3>
               <button 
                 onClick={closeTerms}
                 className="text-gray-400 hover:text-white focus:outline-none"
@@ -731,45 +740,22 @@ const CustomPurchasePage = () => {
                 </svg>
               </button>
             </div>
+            
             <div className="p-6 overflow-y-auto flex-1">
-              <div className="space-y-6 text-gray-300">
-                <div>
-                  <h4 className="text-lg font-semibold text-amber-400 mb-2">1. Información General</h4>
-                  <p>Al participar en esta rifa, el comprador acepta cumplir con los siguientes términos y condiciones establecidos por los organizadores.</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-lg font-semibold text-amber-400 mb-2">2. Elegibilidad</h4>
-                  <p>Para participar en la rifa, los compradores deben ser mayores de edad según las leyes de su país de residencia. La participación puede estar restringida en ciertos países donde las rifas estén prohibidas.</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-lg font-semibold text-amber-400 mb-2">3. Tickets y Pagos</h4>
-                  <p>Cada ticket es válido únicamente para el sorteo específico al que corresponde. Los pagos deben realizarse a través de los métodos oficiales proporcionados. No se aceptarán pagos por canales no autorizados.</p>
-                  <p className="mt-2">Una vez realizada la compra, se enviará una confirmación al correo electrónico proporcionado.</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-lg font-semibold text-amber-400 mb-2">4. Selección del Ganador</h4>
-                  <p>El sorteo se realizará en la fecha indicada en la descripción de la rifa. El ganador será seleccionado de manera aleatoria mediante un sistema transparente y supervisado.</p>
-                  <p className="mt-2">El resultado del sorteo será inapelable. El ganador será notificado a través de los datos de contacto proporcionados durante la compra.</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-lg font-semibold text-amber-400 mb-2">5. Entrega del Premio</h4>
-                  <p>El premio será entregado al ganador en las condiciones especificadas en la descripción de la rifa. Los gastos de envío, impuestos o tasas adicionales pueden aplicar dependiendo de la ubicación del ganador.</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-lg font-semibold text-amber-400 mb-2">6. Privacidad y Datos Personales</h4>
-                  <p>Los datos personales proporcionados por los participantes serán utilizados únicamente para los fines relacionados con la rifa y no serán compartidos con terceros sin consentimiento previo.</p>
-                </div>
+              <div className="text-gray-300 space-y-4 max-h-[60vh] pr-4">
+                <p>1. Para participar en el sorteo, debes ser mayor de 18 años.</p>
+                <p>2. El pago debe ser confirmado para que tu participación sea válida. Guarda tu comprobante de pago.</p>
+                <p>3. Los premios no son transferibles y no pueden ser cambiados por efectivo. El premio sera entregado via Pago movil o en su defecto via Zelle, si el ganador proporciona una cuenta.</p>
+                <p>4. El ganador será contactado a través de los datos proporcionados. Es tu responsabilidad asegurar que la información sea correcta.</p>
+                <p>5. Nos reservamos el derecho de modificar los términos y condiciones en cualquier momento.</p>
+                <p>6. Al participar, aceptas que tu nombre y apellido puedan ser publicados en nuestras redes sociales si resultas ganador.</p>
               </div>
             </div>
+            
             <div className="border-t border-cyan-800/30 px-6 py-4 bg-gradient-to-r from-gray-900 to-gray-800">
               <button 
                 onClick={closeTerms}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-8 rounded-lg transition duration-300 shadow-lg hover:shadow-green-400/50"
               >
                 Entendido
               </button>
