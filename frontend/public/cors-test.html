@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Connection Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .test-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-buttons {
+            margin: 15px 0;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3a7bc8;
+        }
+        button.secondary {
+            background-color: #6c757d;
+        }
+        .result-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .status {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        #cors-status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .cors-ok {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .cors-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .field input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tu Suerte Venezuela - API Connection Test</h1>
+    
+    <div class="test-card">
+        <div class="test-title">Current Configuration</div>
+        
+        <div class="field">
+            <label for="backend-url">Backend URL:</label>
+            <input type="text" id="backend-url" value="https://tu-suerte-esta-aqui-ve.onrender.com">
+        </div>
+        
+        <div class="field">
+            <label for="frontend-url">Frontend URL:</label>
+            <input type="text" id="frontend-url" value="https://tusuerte-admin.netlify.app">
+        </div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">1. Basic Health Check</div>
+        <p>Tests if the backend server is online and responding to requests.</p>
+        
+        <div class="test-buttons">
+            <button onclick="testHealthCheck()">Run Test</button>
+        </div>
+        
+        <div id="health-status" class="status">Status: Not tested</div>
+        <div id="health-result" class="result-box">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">2. CORS Test</div>
+        <p>Tests if Cross-Origin Resource Sharing (CORS) is properly configured.</p>
+        
+        <div class="test-buttons">
+            <button onclick="testCORS()">Run CORS Test</button>
+        </div>
+        
+        <div id="cors-status" class="status">Status: Not tested</div>
+        <div id="cors-result" class="result-box">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <div class="test-title">3. Ticket Verification API Test</div>
+        <p>Tests if the ticket verification API endpoint is working.</p>
+        
+        <div class="field">
+            <label for="ticket-number">Ticket Number:</label>
+            <input type="text" id="ticket-number" value="5992">
+        </div>
+        
+        <div class="test-buttons">
+            <button onclick="testTicketVerification()">Test Ticket Verification</button>
+        </div>
+        
+        <div id="ticket-status" class="status">Status: Not tested</div>
+        <div id="ticket-result" class="result-box">Results will appear here...</div>
+    </div>
+
+    <script>
+        // Utility function to format JSON responses
+        function formatJSON(obj) {
+            return JSON.stringify(obj, null, 2);
+        }
+        
+        // Get backend URL from input
+        function getBackendURL() {
+            return document.getElementById('backend-url').value.trim();
+        }
+        
+        // Test 1: Health Check
+        async function testHealthCheck() {
+            const resultElement = document.getElementById('health-result');
+            const statusElement = document.getElementById('health-status');
+            
+            resultElement.innerHTML = "Running test...";
+            statusElement.innerHTML = "Status: Testing...";
+            statusElement.className = "";
+            
+            try {
+                const backendURL = getBackendURL();
+                const response = await fetch(`${backendURL}/api/health`);
+                const data = await response.json();
+                
+                resultElement.innerHTML = formatJSON(data);
+                statusElement.innerHTML = `Status: <span class="success">Success (${response.status})</span>`;
+            } catch (error) {
+                resultElement.innerHTML = `Error: ${error.message}`;
+                statusElement.innerHTML = `Status: <span class="error">Failed</span>`;
+            }
+        }
+        
+        // Test 2: CORS Test
+        async function testCORS() {
+            const resultElement = document.getElementById('cors-result');
+            const statusElement = document.getElementById('cors-status');
+            
+            resultElement.innerHTML = "Running CORS test...";
+            statusElement.innerHTML = "Status: Testing...";
+            statusElement.className = "";
+            
+            try {
+                const backendURL = getBackendURL();
+                
+                // Try to fetch with credentials to test CORS
+                const response = await fetch(`${backendURL}/api/cors-test`, {
+                    method: 'GET',
+                    credentials: 'include'  // This triggers CORS preflight
+                });
+                
+                const data = await response.json();
+                
+                resultElement.innerHTML = formatJSON(data);
+                statusElement.innerHTML = "Status: CORS is working correctly!";
+                statusElement.className = "cors-ok";
+            } catch (error) {
+                resultElement.innerHTML = `Error: ${error.message}\n\nThis may indicate a CORS issue. Check if your backend server allows requests from your frontend origin.`;
+                statusElement.innerHTML = "Status: CORS configuration issue detected";
+                statusElement.className = "cors-error";
+            }
+        }
+        
+        // Test 3: Ticket Verification API
+        async function testTicketVerification() {
+            const resultElement = document.getElementById('ticket-result');
+            const statusElement = document.getElementById('ticket-status');
+            const ticketNumber = document.getElementById('ticket-number').value;
+            
+            if (!ticketNumber) {
+                resultElement.innerHTML = "Please enter a ticket number.";
+                return;
+            }
+            
+            resultElement.innerHTML = "Testing ticket verification API...";
+            statusElement.innerHTML = "Status: Testing...";
+            statusElement.className = "";
+            
+            try {
+                const backendURL = getBackendURL();
+                const response = await fetch(`${backendURL}/api/tickets/find/${ticketNumber}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultElement.innerHTML = formatJSON(data);
+                    statusElement.innerHTML = `Status: <span class="success">Success (${response.status})</span>`;
+                } else {
+                    const errorText = await response.text();
+                    resultElement.innerHTML = `API returned status ${response.status}: ${errorText}`;
+                    statusElement.innerHTML = `Status: <span class="error">API Error (${response.status})</span>`;
+                }
+            } catch (error) {
+                resultElement.innerHTML = `Error: ${error.message}`;
+                statusElement.innerHTML = `Status: <span class="error">Failed</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
