@@ -31,11 +31,25 @@ const VerifyTicketsPage = () => {
     
     setLoading(true);
     
-    // TEMPORARY: Show "coming soon" message while backend is being updated
-    setTimeout(() => {
+    try {
+      const response = await axios.get(`${apiConfig.API_URL}/tickets/verify/${encodeURIComponent(cedula)}`);
+      setTicketData(response.data);
       setLoading(false);
-      setError('Esta función está temporalmente en mantenimiento. Estamos trabajando para habilitarla en los próximos días.');
-    }, 1500);
+    } catch (err) {
+      console.error('Error verifying tickets:', err);
+      setLoading(false);
+      
+      if (err.response && err.response.status === 404) {
+        // Not found - normal error
+        setError('No se encontraron boletos para esta cédula. Por favor, verifique el número ingresado.');
+      } else if (!err.response || err.response.status === 500) {
+        // Server error or connectivity issue
+        setError('Esta función está temporalmente en mantenimiento. Estamos trabajando para habilitarla en los próximos días.');
+      } else {
+        // Other errors
+        setError(err.response?.data?.message || 'Error al verificar los boletos. Por favor, intente de nuevo más tarde.');
+      }
+    }
     
     // Log for debugging only
     console.log('Verify tickets feature in maintenance. Cedula:', cedula);
