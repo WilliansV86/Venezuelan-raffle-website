@@ -16,7 +16,7 @@ const PurchaseTermsModal = ({ onClose }) => {
             </svg>
           </button>
         </div>
-ECHO is off.
+        
         <div className="p-6 overflow-y-auto flex-1">
           <div className="text-gray-300 space-y-4 max-h-[60vh] pr-4">
             <p>1. Para participar en el sorteo, debes ser mayor de 18 años.</p>
@@ -27,7 +27,7 @@ ECHO is off.
             <p>6. Al participar, aceptas que tu nombre y apellido puedan ser publicados en nuestras redes sociales si resultas ganador.</p>
           </div>
         </div>
-ECHO is off.
+        
         <div className="border-t border-cyan-800/30 px-6 py-4 bg-gradient-to-r from-gray-900 to-gray-800">
           <button 
             onClick={onClose}
