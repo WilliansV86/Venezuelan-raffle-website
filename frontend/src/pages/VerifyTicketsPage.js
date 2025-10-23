@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { FaTicketAlt, FaCheck, FaTimes, FaClock, FaTrophy } from 'react-icons/fa';
+import apiConfig from '../config/apiConfig';
 
 const VerifyTicketsPage = () => {
   const [cedula, setCedula] = useState('');
@@ -30,8 +31,18 @@ const VerifyTicketsPage = () => {
     
     setLoading(true);
     
+    // TEMPORARY: Show "coming soon" message while backend is being updated
+    setTimeout(() => {
+      setLoading(false);
+      setError('Esta función está temporalmente en mantenimiento. Estamos trabajando para habilitarla en los próximos días.');
+    }, 1500);
+    
+    // Log for debugging only
+    console.log('Verify tickets feature in maintenance. Cedula:', cedula);
+    
+    /* Commented out until backend is ready
     try {
-      const response = await axios.get(`/api/tickets/verify/${encodeURIComponent(cedula)}`);
+      const response = await axios.get(`${apiConfig.API_URL}/tickets/verify/${encodeURIComponent(cedula)}`);
       setTicketData(response.data);
     } catch (err) {
       console.error('Error verifying tickets:', err);
@@ -43,6 +54,7 @@ const VerifyTicketsPage = () => {
     } finally {
       setLoading(false);
     }
+    */
   };
 
   const getPaymentStatusText = (status) => {
