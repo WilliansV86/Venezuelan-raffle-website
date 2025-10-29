@@ -127,34 +127,38 @@ const HomePage = () => {
           )}
 
           {!loading && !error && (
-            <div className="flex flex-col md:flex-row justify-center items-start gap-32">
+            <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start gap-8 lg:gap-32">
               {/* Active Raffles Section */}
-              <div className="w-full md:w-auto flex flex-col items-center">
+              <div className="w-full max-w-full md:max-w-md flex flex-col items-center mb-12 lg:mb-0">
                 <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
                   <FaGift className="text-cyan-400" />
                   <span>Sorteo Activo</span>
                 </h2>
                 {activeRaffle ? (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center w-full">
                     <RaffleCard raffle={activeRaffle} isPast={false} />
                   </div>
                 ) : (
-                  <p className="text-gray-300">No hay sorteos activos.</p>
+                  <div className="bg-black/30 backdrop-blur-sm p-8 rounded-lg text-center w-full max-w-sm">
+                    <p className="text-gray-300">No hay sorteos activos en este momento.</p>
+                  </div>
                 )}
               </div>
 
               {/* Past Raffles Section */}
-              <div className="w-full md:w-auto flex flex-col items-center">
+              <div className="w-full max-w-full md:max-w-md flex flex-col items-center">
                 <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
                   <FaHistory className="text-purple-400" />
                   <span>Sorteo Anterior</span>
                 </h2>
                 {pastRaffle ? (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center w-full">
                     <RaffleCard raffle={pastRaffle} isPast={true} />
                   </div>
                 ) : (
-                  <p className="text-gray-300">No hay sorteos anteriores.</p>
+                  <div className="bg-black/30 backdrop-blur-sm p-8 rounded-lg text-center w-full max-w-sm">
+                    <p className="text-gray-300">No hay sorteos anteriores disponibles.</p>
+                  </div>
                 )}
               </div>
             </div>
