@@ -73,17 +73,3 @@ raffleSchema.set('toObject', { virtuals: true });
 const Raffle = mongoose.model('Raffle', raffleSchema);
 
 module.exports = Raffle;
-// displayProgressMode and displayProgressValue fields added for progress management 
-raffleSchema.add({ 
-  displayProgressMode: { 
-    type: String, 
-    enum: ['automatic', 'manual'], 
-    default: 'automatic' 
-  }, 
-  displayProgressValue: { 
-    type: Number, 
-    min: 0, 
-    max: 100, 
-    default: null 
-  } 
-}); 

@@ -23,6 +23,7 @@ const raffleRoutes = require('./src/routes/raffleRoutes.js');
 const adminRoutes = require('./src/routes/adminRoutes.js');
 const ticketRoutes = require('./src/routes/ticketRoutes.js');
 const transactionRoutes = require('./src/routes/transactionRoutes.js');
+const raffleProgressRoutes = require('./src/routes/raffleProgressRoutes.js');
 
 connectDB().then(() => {
     console.log('Database connection successful, starting web server...');
@@ -80,6 +81,7 @@ connectDB().then(() => {
 
     app.use('/api/health', healthCheckRoutes);
     app.use('/api/raffles', raffleRoutes);
+    app.use('/api/raffles', raffleProgressRoutes); // Progress management routes
     app.use('/api/admin', adminRoutes);
     app.use('/api/tickets', ticketRoutes);
     app.use('/api/transactions', transactionRoutes);
