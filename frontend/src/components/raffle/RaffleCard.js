@@ -62,7 +62,11 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
   }, [raffle, isPast]);
 
   if (loading) {
-    return <div className="w-96"><div className="h-[600px] bg-gray-700 animate-pulse rounded-lg shadow-lg"></div></div>;
+    return (
+      <div className="w-full max-w-[24rem] mx-auto">
+        <div className="h-[450px] sm:h-[550px] md:h-[600px] bg-gray-700 animate-pulse rounded-lg shadow-lg"></div>
+      </div>
+    );
   }
 
   if (!raffle) {
@@ -86,12 +90,12 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
   return (
     <>
       {isModalOpen && <TermsModal onAccept={handleAcceptTerms} />}
-      <div className="w-96 font-sans transition-transform duration-300 ease-in-out hover:scale-105 group">
+      <div className="w-full max-w-[24rem] mx-auto font-sans transition-transform duration-300 ease-in-out hover:scale-[1.02] group">
         <Link to={`/raffle/${raffle._id}`} className="block">
           <img 
             src={imageUrl} 
             alt={raffle.title || 'Ver detalles del sorteo'} 
-            className="w-full h-[600px] object-cover rounded-lg shadow-lg"
+            className="w-full h-[450px] sm:h-[550px] md:h-[600px] object-cover rounded-lg shadow-lg"
           />
         </Link>
         <div className="p-6 text-white flex flex-col justify-center items-center">
