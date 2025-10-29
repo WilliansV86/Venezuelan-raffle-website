@@ -18,29 +18,47 @@ const HomePage = () => {
   const fetchRaffles = async () => {
     try {
       setLoading(true);
-      const [activeRes, pastRes] = await Promise.all([
-        raffleService.getActiveRaffles(),
-        raffleService.getPastRaffles(),
-      ]);
-
-      // More detailed debugging for active raffles
-      console.log('Active raffles response structure:', JSON.stringify(activeRes));
+      setError(null); // Clear previous errors
       
+      // Add individual try-catch blocks to ensure one failing request doesn't stop the other
+      let activeRes = null;
+      let pastRes = null;
+      
+      try {
+        activeRes = await raffleService.getActiveRaffles();
+        console.log('Active raffles response:', activeRes);
+      } catch (activeErr) {
+        console.error('Failed to fetch active raffles:', activeErr);
+      }
+      
+      try {
+        pastRes = await raffleService.getPastRaffles();
+        console.log('Past raffles response:', pastRes);
+      } catch (pastErr) {
+        console.error('Failed to fetch past raffles:', pastErr);
+      }
+
+      // Handle active raffle data
       if (activeRes && activeRes.success && activeRes.data && activeRes.data.length > 0) {
         console.log('Active raffle found:', activeRes.data[0].title || activeRes.data[0].name);
-        console.log('Full active raffle data:', JSON.stringify(activeRes.data[0]));
         setActiveRaffle(activeRes.data[0]);
       } else {
-        console.log('No active raffles found. Response:', JSON.stringify(activeRes));
+        console.log('No active raffles found or invalid response format');
         setActiveRaffle(null);
       }
 
+      // Handle past raffle data
       if (pastRes && pastRes.success && pastRes.data && pastRes.data.length > 0) {
-        console.log('Past raffle found:', pastRes.data[0].title);
+        console.log('Past raffle found:', pastRes.data[0].title || pastRes.data[0].name);
         setPastRaffle(pastRes.data[0]);
       } else {
-        console.log('No past raffles found');
+        console.log('No past raffles found or invalid response format');
         setPastRaffle(null);
+      }
+      
+      // If both requests failed, show an error
+      if (!activeRes && !pastRes) {
+        setError('No se pudieron cargar los sorteos. Por favor, intente más tarde.');
       }
     } catch (err) {
       setError('No se pudieron cargar los sorteos. Por favor, intente más tarde.');
@@ -127,34 +145,38 @@ const HomePage = () => {
           )}
 
           {!loading && !error && (
-            <div className="flex flex-col md:flex-row justify-center items-start gap-32">
+            <div className="flex flex-col lg:flex-row justify-center items-center lg:items-start gap-8 lg:gap-32">
               {/* Active Raffles Section */}
-              <div className="w-full md:w-auto flex flex-col items-center">
+              <div className="w-full max-w-full md:max-w-md flex flex-col items-center mb-12 lg:mb-0">
                 <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
                   <FaGift className="text-cyan-400" />
                   <span>Sorteo Activo</span>
                 </h2>
                 {activeRaffle ? (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center w-full">
                     <RaffleCard raffle={activeRaffle} isPast={false} />
                   </div>
                 ) : (
-                  <p className="text-gray-300">No hay sorteos activos.</p>
+                  <div className="bg-black/30 backdrop-blur-sm p-8 rounded-lg text-center w-full max-w-sm">
+                    <p className="text-gray-300">No hay sorteos activos en este momento.</p>
+                  </div>
                 )}
               </div>
 
               {/* Past Raffles Section */}
-              <div className="w-full md:w-auto flex flex-col items-center">
+              <div className="w-full max-w-full md:max-w-md flex flex-col items-center">
                 <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
                   <FaHistory className="text-purple-400" />
                   <span>Sorteo Anterior</span>
                 </h2>
                 {pastRaffle ? (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center w-full">
                     <RaffleCard raffle={pastRaffle} isPast={true} />
                   </div>
                 ) : (
-                  <p className="text-gray-300">No hay sorteos anteriores.</p>
+                  <div className="bg-black/30 backdrop-blur-sm p-8 rounded-lg text-center w-full max-w-sm">
+                    <p className="text-gray-300">No hay sorteos anteriores disponibles.</p>
+                  </div>
                 )}
               </div>
             </div>

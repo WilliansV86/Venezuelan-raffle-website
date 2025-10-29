@@ -5,11 +5,13 @@ const raffleService = {
   getActiveRaffles: async () => {
     try {
       console.log('Fetching active raffles...');
+      // Correct API path for all environments
       const response = await api.get('/api/raffles');
       console.log('Active raffles API response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching active raffles:', error);
+      console.error('Error details:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -21,6 +23,7 @@ const raffleService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching past raffles:', error);
+      console.error('Error details:', error.response?.data || error.message);
       throw error;
     }
   },
