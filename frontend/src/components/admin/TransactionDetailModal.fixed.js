@@ -3,38 +3,23 @@ import { FaTimes } from 'react-icons/fa';
 import apiConfig from '../../config/apiConfig';
 
 const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
-  // All useState hooks must be at the top level, before any conditionals
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   if (!transaction) return null;
-  
-  // Get direct URL to the payment proof image
-  let imageUrl = null;
-  
-  if (transaction.paymentScreenshot) {
-    // Check if it's a complete URL already
-    if (transaction.paymentScreenshot.startsWith('http')) {
-      imageUrl = transaction.paymentScreenshot;
-    } 
-    // If it's a path like /uploads/filename.jpg
-    else if (transaction.paymentScreenshot.includes('/uploads/')) {
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : 'https://tu-suerte-esta-aqui-ve.onrender.com';
-      imageUrl = `${baseUrl}${transaction.paymentScreenshot}`;
-    } 
-    // If it's just a filename
-    else {
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : 'https://tu-suerte-esta-aqui-ve.onrender.com';
-      imageUrl = `${baseUrl}/uploads/${transaction.paymentScreenshot}`;
-    }
-  }
-  
-  console.log('Payment screenshot URL:', imageUrl);
+
+  // Construct the full URL for the payment proof image
+  const getImageUrl = (filePath) => {
+    if (!filePath) return null;
+    // The backend serves the 'uploads' folder. We need to get the relative path from there.
+    const parts = filePath.replace(/\\/g, '/').split('/');
+    const uploadsIndex = parts.lastIndexOf('uploads');
+    if (uploadsIndex === -1) return null; // Should not happen if path is correct
+
+    const relativePath = parts.slice(uploadsIndex + 1).join('/');
+    return `${apiConfig.API_URL.replace('/api', '')}/uploads/${relativePath}`;
+  };
+
+  const imageUrl = getImageUrl(transaction.paymentScreenshot);
 
   const handleStatusUpdate = async (newStatus) => {
     setIsSubmitting(true);
@@ -103,36 +88,15 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
               {imageUrl ? (
-                <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden">
-                  {!imageError ? (
-                    <img 
-                      src={imageUrl} 
-                      alt="Comprobante de pago"
-                      className="w-full h-full object-contain" 
-                      onLoad={() => setImageLoaded(true)}
-                      onError={() => {
-                        console.error('Image failed to load:', imageUrl);
-                        setImageError(true);
-                      }}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800/70">
-                      <div className="text-center p-4">
-                        <p className="text-red-400 mb-2">Error al cargar la imagen</p>
-                        <a 
-                          href={imageUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 underline text-sm"
-                        >
-                          Ver enlace directo
-                        </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="block group">
+                  <img 
+                    src={imageUrl} 
+                    alt="Comprobante de pago" 
+                    className="w-full rounded-lg border-2 border-gray-600 group-hover:border-cyan-400 transition-all duration-300 transform group-hover:scale-105"
+                  />
+                </a>
               ) : (
-                <div className="h-64 w-full rounded-lg border-2 border-gray-600 flex items-center justify-center bg-gray-800/50">
+                <div className="w-full h-48 rounded-lg border-2 border-gray-600 flex items-center justify-center bg-gray-800/50">
                   <p className="text-gray-400">No hay comprobante disponible</p>
                 </div>
               )}

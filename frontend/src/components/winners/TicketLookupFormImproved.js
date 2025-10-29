@@ -1,0 +1,197 @@
+import React, { useState } from 'react';
+import axios from 'axios';
+import { FaSearch, FaTicketAlt, FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaSpinner } from 'react-icons/fa';
+import apiConfig from '../../config/apiConfig';
+
+const TicketLookupFormImproved = () => {
+  const [ticketNumber, setTicketNumber] = useState('');
+  const [ticketData, setTicketData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchPerformed, setSearchPerformed] = useState(false);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    
+    if (!ticketNumber.trim()) {
+      setError('Por favor, ingresa un número de ticket');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setSearchPerformed(true);
+      
+      // Use the centralized API URL from config
+      const response = await axios.get(`${apiConfig.API_URL}/tickets/find/${ticketNumber.trim()}`);
+      
+      console.log('Ticket search response:', response.data);
+      
+      if (response.data && response.data.success) {
+        setTicketData(response.data);
+      } else {
+        setError('No se encontraron datos para este ticket');
+        setTicketData(null);
+      }
+    } catch (err) {
+      console.error('Error searching for ticket:', err);
+      setTicketData(null);
+      
+      if (err.response && err.response.status === 404) {
+        setError('No se encontró ningún ticket con este número');
+      } else {
+        setError(`Error al buscar el ticket: ${err.response?.data?.message || err.message}. Por favor, intente de nuevo.`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No disponible';
+    
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('es-ES', options);
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'Aprobado';
+      case 'pending':
+        return 'Pendiente';
+      case 'rejected':
+        return 'Rechazado';
+      default:
+        return status || 'Desconocido';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'text-green-400';
+      case 'pending':
+        return 'text-yellow-400';
+      case 'rejected':
+        return 'text-red-400';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  return (
+    <div className="bg-black/30 backdrop-blur-lg rounded-xl p-6 shadow-2xl shadow-cyan-400/10 border border-cyan-500/20 mb-10">
+      <h2 className="text-2xl font-bold text-white mb-4">Consultar Ticket</h2>
+      <p className="text-gray-300 mb-6">
+        Ingresa el número de ticket para ver la información del participante
+      </p>
+      
+      <form onSubmit={handleSearch} className="mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FaTicketAlt className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={ticketNumber}
+                onChange={(e) => setTicketNumber(e.target.value)}
+                placeholder="Número de ticket"
+                className="w-full pl-10 pr-4 py-2 bg-gray-800 text-white border border-gray-700 rounded-lg focus:outline-none focus:border-cyan-500 transition-colors"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`px-6 py-2 rounded-lg font-medium flex items-center justify-center transition-all ${
+              loading
+                ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+            }`}
+          >
+            {loading ? (
+              <span className="flex items-center">
+                <FaSpinner className="animate-spin mr-2" />
+                Buscando...
+              </span>
+            ) : (
+              <>
+                <FaSearch className="mr-2" />
+                Buscar Ticket
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+
+      {error && searchPerformed && (
+        <div className="bg-red-900/50 text-red-200 p-4 rounded-lg mb-4">
+          <p>{error}</p>
+        </div>
+      )}
+
+      {ticketData && (
+        <div className="bg-gray-900/70 border border-cyan-600/30 rounded-lg p-5">
+          <h3 className="text-xl font-bold text-cyan-400 mb-4">Información del Ticket #{ticketData.ticket.number}</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="flex items-center mb-3">
+                <FaUser className="text-cyan-400 mr-2" />
+                <span className="text-gray-400">Comprador:</span>
+              </div>
+              <p className="text-white text-xl font-bold ml-6 mb-1">
+                {ticketData.ticket.buyer.firstName} {ticketData.ticket.buyer.lastName}
+              </p>
+              {ticketData.ticket.buyer.identificationNumber && (
+                <p className="text-gray-300 ml-6 mb-3">
+                  Cédula: {ticketData.ticket.buyer.identificationNumber}
+                </p>
+              )}
+              
+              <div className="ml-6 space-y-2">
+                {ticketData.ticket.buyer.email && (
+                  <div className="flex items-center text-gray-300">
+                    <FaEnvelope className="text-cyan-400 mr-2" />
+                    <span>{ticketData.ticket.buyer.email}</span>
+                  </div>
+                )}
+                {ticketData.ticket.buyer.whatsapp && (
+                  <div className="flex items-center text-gray-300">
+                    <FaPhone className="text-cyan-400 mr-2" />
+                    <span>{ticketData.ticket.buyer.whatsapp}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center mb-3">
+                <FaCalendarAlt className="text-cyan-400 mr-2" />
+                <span className="text-gray-400">Detalles del Ticket:</span>
+              </div>
+              <ul className="ml-6 space-y-2 text-gray-300">
+                <li><span className="text-gray-400">Fecha de compra:</span> {formatDate(ticketData.ticket.purchaseDate)}</li>
+                <li>
+                  <span className="text-gray-400">Estado del ticket:</span> 
+                  <span className={`ml-2 ${getStatusColor(ticketData.ticket.status)}`}>
+                    {getStatusLabel(ticketData.ticket.status)}
+                  </span>
+                </li>
+                <li><span className="text-gray-400">Sorteo:</span> {ticketData.raffle.name}</li>
+                <li><span className="text-gray-400">Premio:</span> {ticketData.raffle.prize}</li>
+                <li><span className="text-gray-400">Fecha del sorteo:</span> {formatDate(ticketData.raffle.drawDate)}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TicketLookupFormImproved;

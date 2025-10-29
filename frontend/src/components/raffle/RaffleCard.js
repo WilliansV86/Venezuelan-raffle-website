@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import TermsModal from '../common/TermsModal';
 import { ModernProgressBar, PremiumProgressBar, ElegantProgressBar } from '../common/ProgressBarAlternatives';
 import axios from 'axios';
+import apiConfig from '../../config/apiConfig';
+
 
 const RaffleCard = ({ raffle, loading, isPast }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,7 +13,11 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
     totalTickets: 100,
     remainingTickets: 100
   });
-  const [progress, setProgress] = useState(raffle?.progress || 0);
+  // Initialize progress - check for manual override first
+  const initialProgress = raffle?.displayProgressMode === 'manual' && raffle?.displayProgressValue !== null
+    ? raffle.displayProgressValue
+    : (raffle?.progress || 0);
+  const [progress, setProgress] = useState(initialProgress);
   const navigate = useNavigate();
 
   // Fetch raffle stats when component mounts and periodically refresh
@@ -21,7 +27,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
     
     const fetchRaffleStats = async () => {
       try {
-        const statsResponse = await axios.get(`http://localhost:5100/api/raffles/${raffle._id}/stats`);
+        const statsResponse = await axios.get(`${apiConfig.API_URL}/raffles/${raffle._id}/stats`);
         const stats = statsResponse.data.data || statsResponse.data;
         
         // Update the stats in state to refresh the UI
@@ -32,7 +38,11 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
         });
         
         // Calculate and update progress percentage
-        if (stats.totalTickets > 0) {
+        if (raffle.displayProgressMode === 'manual' && raffle.displayProgressValue !== null) {
+          // Use the manually set progress value
+          setProgress(raffle.displayProgressValue);
+        } else if (stats.totalTickets > 0) {
+          // Calculate automatically based on actual tickets sold
           const newProgress = Math.round(((stats.totalTickets - stats.remainingTickets) / stats.totalTickets) * 100);
           setProgress(newProgress);
         }
@@ -61,7 +71,7 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
 
   // Fix image path to point to the correct backend URL
   const imageUrl = raffle.image ? 
-    raffle.image.startsWith('http') ? raffle.image : `http://localhost:5100${raffle.image}` 
+    raffle.image.startsWith('http') ? raffle.image : `${apiConfig.API_URL.replace("/api", "")}${raffle.image}` 
     : '/images/default-raffle-image.png';
 
   const handleParticipateClick = () => {
