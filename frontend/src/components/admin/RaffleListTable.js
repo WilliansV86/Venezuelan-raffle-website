@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaCheckCircle, FaPlay, FaArchive, FaSync } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaEdit, FaTrash, FaCheckCircle, FaPlay, FaArchive, FaSync, FaChartBar } from 'react-icons/fa';
 import axios from 'axios';
 
 const RaffleListTable = ({ raffles, onPromote, onDemote, onSetToDraft, onEdit, onDelete, isSubmitting }) => {
+  const navigate = useNavigate();
+  
+  const handleManageProgress = (raffleId) => {
+    navigate(`/admin/raffles/progress/${raffleId}`);
+  };
+
   // State to store raffle stats
   const [raffleStats, setRaffleStats] = useState({});
   const [refreshingStats, setRefreshingStats] = useState(false);
@@ -251,6 +258,7 @@ const RaffleListTable = ({ raffles, onPromote, onDemote, onSetToDraft, onEdit, o
                 {/* Column 4: Actions */}
                 <div className="md:col-span-3 flex justify-end items-center space-x-3">
                   <button onClick={() => onEdit(raffle._id)} disabled={isSubmitting} className="text-blue-400 hover:text-blue-300 disabled:text-gray-600"><FaEdit title="Editar" /></button>
+                  <button onClick={() => handleManageProgress(raffle._id)} disabled={isSubmitting} className="text-cyan-400 hover:text-cyan-300 disabled:text-gray-600"><FaChartBar title="Gestionar Progreso" /></button>
                   <button onClick={() => onDelete(raffle._id)} disabled={isSubmitting} className="text-red-400 hover:text-red-300 disabled:text-gray-600"><FaTrash title="Eliminar" /></button>
                 </div>
               </div>

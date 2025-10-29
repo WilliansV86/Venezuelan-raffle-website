@@ -17,6 +17,7 @@ import CustomPurchasePage from './pages/CustomPurchasePage';
 import AdminRafflesListPage from './pages/admin/AdminRafflesListPage';
 import CreateRafflePage from './pages/admin/CreateRafflePage';
 import DirectEditRafflePage from './pages/admin/DirectEditRafflePage';
+import ManageRaffleProgressPage from './pages/admin/ManageRaffleProgressPage';
 import AdminPage from './pages/AdminPage';
 import RaffleStatusManager from './components/admin/RaffleStatusManager';
 import LoginPage from './pages/LoginPage';
@@ -59,6 +60,7 @@ function App() {
           <Route path="/admin/raffles" element={<AdminRafflesListPage />} />
           <Route path="/admin/raffles/new" element={<CreateRafflePage />} />
           <Route path="/admin/raffles/edit/:id" element={<DirectEditRafflePage />} />
+          <Route path="/admin/raffles/progress/:id" element={<ManageRaffleProgressPage />} />
           <Route path="/admin/raffles/status" element={<RaffleStatusManager />} />
         </Routes>
       </main>
