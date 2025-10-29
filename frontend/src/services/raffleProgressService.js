@@ -1,5 +1,5 @@
 import axios from 'axios';
-import api from './apiService';
+import api from './api';
 import { getAdminKey } from '../utils/adminAuth';
 
 /**
@@ -42,8 +42,11 @@ export const updateRaffleDisplayProgress = async (raffleId, mode, value = null) 
     // Log what headers we're using
     console.log('Request headers:', headers);
     
-    // Make the API call with the headers
-    return await axios.put(`/api/raffles/${raffleId}/display-progress`, {
+    // Import the API_URL from the apiConfig
+    const API_URL = process.env.REACT_APP_API_URL || 'https://tu-suerte-esta-aqui-ve.onrender.com/api';
+    
+    // Make the API call with the headers and full URL
+    return await axios.put(`${API_URL}/raffles/${raffleId}/display-progress`, {
       displayProgressMode: mode,
       displayProgressValue: value
     }, { headers });

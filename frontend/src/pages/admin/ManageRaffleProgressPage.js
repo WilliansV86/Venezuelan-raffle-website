@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import RaffleProgressManager from '../../components/admin/RaffleProgressManager';
 import api from '../../services/api';
+import apiConfig from '../../config/apiConfig';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
@@ -36,15 +38,41 @@ const ManageRaffleProgressPage = () => {
           },
         };
         
-        // Fetch the specific raffle by ID
-        const { data } = await api.get(`/api/admin/raffles/${raffleId}`, config);
+        console.log('API URL:', api.defaults.baseURL);
         
-        if (data) {
-          console.log('Raffle data loaded:', data);
-          setRaffle(data);
-        } else {
-          setError('No se encontraron datos para este sorteo o la respuesta fue inválida.');
+        // First try the admin endpoint
+        try {
+          const response = await api.get(`/api/admin/raffles/${raffleId}`, config);
+          console.log('Admin API response:', response.data);
+          setRaffle(response.data);
+          return;
+        } catch (adminError) {
+          console.warn('Admin API failed, trying regular endpoint:', adminError.message);
         }
+        
+        // If admin endpoint fails, try the regular endpoint
+        try {
+          const response = await api.get(`/api/raffles/${raffleId}`, config);
+          console.log('Regular API response:', response.data);
+          setRaffle(response.data);
+          return;
+        } catch (regularError) {
+          console.warn('Regular API failed, trying direct URL:', regularError.message);
+        }
+        
+        // Last resort: Try with direct axios and absolute URL
+        try {
+          const directUrl = `${apiConfig.API_URL}/raffles/${raffleId}`;
+          console.log('Trying direct URL:', directUrl);
+          const response = await axios.get(directUrl, config);
+          console.log('Direct URL response:', response.data);
+          setRaffle(response.data);
+          return;
+        } catch (directError) {
+          console.error('All API attempts failed');
+          throw directError;
+        }
+        
       } catch (err) {
         console.error('Error fetching raffle:', err);
         setError(err.response?.data?.message || 'Error al cargar los datos del sorteo.');
