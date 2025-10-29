@@ -18,19 +18,17 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
     if (transaction.paymentScreenshot.startsWith('http')) {
       imageUrl = transaction.paymentScreenshot;
     } 
-    // If it's a path like /uploads/filename.jpg
-    else if (transaction.paymentScreenshot.includes('/uploads/')) {
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : 'https://tu-suerte-esta-aqui-ve.onrender.com';
-      imageUrl = `${baseUrl}${transaction.paymentScreenshot}`;
-    } 
-    // If it's just a filename
+    // If it contains uploads path
     else {
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : 'https://tu-suerte-esta-aqui-ve.onrender.com';
-      imageUrl = `${baseUrl}/uploads/${transaction.paymentScreenshot}`;
+      // Extract just the filename without path
+      const filename = transaction.paymentScreenshot.split('/').pop().split('\\').pop();
+      
+      // Use direct URL to the Render.com service
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${filename}`;
+      
+      // Log this for debugging
+      console.log('Original path:', transaction.paymentScreenshot);
+      console.log('Extracted filename:', filename);
     }
   }
   
