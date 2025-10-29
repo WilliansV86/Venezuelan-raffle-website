@@ -93,7 +93,7 @@ const Navbar = () => {
                   Inicio
                 </Link>
                 <Link
-                  to="/verificar-ticket"
+                  to="/verify-tickets"
                   className="text-xl font-bold tracking-wider text-gray-300 hover:text-cyan-400 px-2 py-1 transition-colors"
                   onClick={() => setIsMenuOpen(false)}
                 >

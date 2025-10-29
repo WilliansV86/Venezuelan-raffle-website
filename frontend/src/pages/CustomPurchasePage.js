@@ -286,15 +286,6 @@ const CustomPurchasePage = () => {
     // Redirect to home or another page after closing the modal
     window.location.href = '/';
   };
-  
-  // Terms modal functions
-  const openTerms = () => {
-    setShowTerms(true);
-  };
-  
-  const closeTerms = () => {
-    setShowTerms(false);
-  };
 
   if (loading) {
     return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Cargando...</div>;
@@ -342,13 +333,37 @@ const CustomPurchasePage = () => {
               <h3 className="text-base mb-2 font-semibold flex justify-between">
                 <span className="text-cyan-300">Tickets Disponibles</span>
                 <span className="text-cyan-300">
-                  {`Quedan ${Math.round((raffleStats.remainingTickets / raffleStats.totalTickets) * 100)}%`}
+                  {/* Calculate remaining percentage - either from manual setting or actual stats */}
+                  {(() => {
+                    // Calculate the appropriate percentage
+                    let remainingPercentage = Math.round((raffleStats.remainingTickets / raffleStats.totalTickets) * 100);
+                    
+                    // If manual mode is active, use the inverted value (since displayProgressValue shows sold percentage)
+                    if (raffle.displayProgressMode === 'manual' && raffle.displayProgressValue !== null) {
+                      remainingPercentage = 100 - raffle.displayProgressValue;
+                    }
+                    
+                    return `Quedan ${remainingPercentage}%`;
+                  })()} 
                 </span>
               </h3>
               <div className="h-3 w-full bg-gray-800 rounded-full overflow-hidden shadow-inner border border-gray-700/50 p-0.5">
                 <div 
                   className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full relative" 
-                  style={{ width: `${Math.round((raffleStats.remainingTickets / raffleStats.totalTickets) * 100)}%` }}
+                  style={{ 
+                    // Calculate appropriate width percentage based on REMAINING tickets
+                    width: (() => {
+                      // Default - use actual stats
+                      let remainingPercentage = Math.round((raffleStats.remainingTickets / raffleStats.totalTickets) * 100);
+                      
+                      // If manual mode is active, use the inverted value
+                      if (raffle.displayProgressMode === 'manual' && raffle.displayProgressValue !== null) {
+                        remainingPercentage = 100 - raffle.displayProgressValue;
+                      }
+                      
+                      return `${remainingPercentage}%`;
+                    })()
+                  }}
                 >
                   <div className="absolute top-0 left-0 w-full h-1/2 bg-white/20 rounded-full"></div>
                 </div>
@@ -494,7 +509,7 @@ const CustomPurchasePage = () => {
               {selectedPayment === 'pago-movil' && (
                 <div className="text-center">
                   <p className="font-mono text-xl text-yellow-300 font-medium select-all bg-black/20 py-3 px-4 rounded-md">
-                    Provincial (0108) V-15605407 04241378533
+                    Provincial (0108) V-15605407 04142881359
                   </p>
                 </div>
               )}

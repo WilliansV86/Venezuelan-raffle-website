@@ -58,4 +58,56 @@ const protectAdmin = asyncHandler(async (req, res, next) => {
   }
 });
 
-module.exports = { protect, protectAdmin };
+// Middleware for routes that can be authenticated with either JWT token OR admin key
+const protectAdminFlex = asyncHandler(async (req, res, next) => {
+  console.log('===== protectAdminFlex called =====');
+  console.log('Headers:', req.headers);
+  console.log('Authorization:', req.headers.authorization);
+  console.log('x-admin-key:', req.headers['x-admin-key']);
+  
+  // Check for Bearer token first
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Get token from header
+      const token = req.headers.authorization.split(' ')[1];
+      console.log('Admin token received:', token);
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Decoded token ID:', decoded.id);
+
+      // Check if the user is the specific admin user
+      if (decoded.id === 'admin_user') {
+        console.log('Admin authentication successful via JWT');
+        req.user = { id: decoded.id }; // Attach user to the request
+        return next();
+      } else {
+        console.log('Token ID is not admin_user:', decoded.id);
+      }
+    } catch (error) {
+      console.log('JWT validation failed:', error.message);
+      console.log('Trying x-admin-key instead');
+      // Continue to next auth method
+    }
+  } else {
+    console.log('No valid Authorization header with Bearer token');
+  }
+  
+  // If Bearer token auth failed, try x-admin-key
+  const adminKey = req.headers['x-admin-key'];
+  console.log('x-admin-key from request:', adminKey);
+  console.log('Expected ADMIN_KEY:', process.env.ADMIN_KEY);
+  console.log('Keys match:', adminKey === process.env.ADMIN_KEY);
+  
+  if (adminKey && adminKey === process.env.ADMIN_KEY) {
+    console.log('Admin authentication successful via x-admin-key');
+    req.user = { id: 'admin_user' }; // Set the same admin user ID
+    return next();
+  }
+  
+  // If we reach here, both auth methods failed
+  console.error('Admin authorization failed: Invalid credentials');
+  res.status(401).json({ message: 'Not authorized, invalid credentials' });
+});
+
+module.exports = { protect, protectAdmin, protectAdminFlex };

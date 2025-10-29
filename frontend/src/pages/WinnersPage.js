@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { FaTrophy, FaTicketAlt, FaUser, FaCalendarAlt, FaInfoCircle } from 'react-icons/fa';
+import TicketLookupFormImproved from '../components/winners/TicketLookupFormImproved';
 
 const WinnersPage = () => {
   const [pastRaffles, setPastRaffles] = useState([]);
@@ -14,11 +15,17 @@ const WinnersPage = () => {
         setLoading(true);
         const response = await axios.get('/api/raffles/past');
         
+        console.log('API Response:', response.data);
+        
+        // Check the response structure and extract the data array
+        const rafflesArray = response.data.data || response.data || [];
+        
         // Filter raffles that have a winner
-        const rafflesWithWinners = response.data.filter(raffle => 
+        const rafflesWithWinners = rafflesArray.filter(raffle => 
           raffle.winner && raffle.winningTicketNumber
         );
         
+        console.log('Filtered raffles with winners:', rafflesWithWinners);
         setPastRaffles(rafflesWithWinners);
         setError(null);
       } catch (err) {
@@ -45,6 +52,9 @@ const WinnersPage = () => {
           Listado de todos los ganadores de nuestros sorteos anteriores
         </p>
       </div>
+
+      {/* Ticket Lookup Form */}
+      <TicketLookupFormImproved />
 
       {loading ? (
         <div className="flex justify-center items-center py-20">

@@ -13,7 +13,11 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
     totalTickets: 100,
     remainingTickets: 100
   });
-  const [progress, setProgress] = useState(raffle?.progress || 0);
+  // Initialize progress - check for manual override first
+  const initialProgress = raffle?.displayProgressMode === 'manual' && raffle?.displayProgressValue !== null
+    ? raffle.displayProgressValue
+    : (raffle?.progress || 0);
+  const [progress, setProgress] = useState(initialProgress);
   const navigate = useNavigate();
 
   // Fetch raffle stats when component mounts and periodically refresh
@@ -34,7 +38,11 @@ const RaffleCard = ({ raffle, loading, isPast }) => {
         });
         
         // Calculate and update progress percentage
-        if (stats.totalTickets > 0) {
+        if (raffle.displayProgressMode === 'manual' && raffle.displayProgressValue !== null) {
+          // Use the manually set progress value
+          setProgress(raffle.displayProgressValue);
+        } else if (stats.totalTickets > 0) {
+          // Calculate automatically based on actual tickets sold
           const newProgress = Math.round(((stats.totalTickets - stats.remainingTickets) / stats.totalTickets) * 100);
           setProgress(newProgress);
         }
