@@ -5,36 +5,19 @@ import apiConfig from '../../config/apiConfig';
 const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   // All useState hooks must be at the top level, before any conditionals
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(false);
 
   if (!transaction) return null;
   
   // Get direct URL to the payment proof image
-  let imageUrl = null;
+  let imageUrl = '/images/payment-proof-placeholder.png'; // Default placeholder
   
+  // Only try to use the actual image URL if it exists
   if (transaction.paymentScreenshot) {
-    // Check if it's a complete URL already
-    if (transaction.paymentScreenshot.startsWith('http')) {
-      imageUrl = transaction.paymentScreenshot;
-    } 
-    // If it's a path like /uploads/filename.jpg
-    else if (transaction.paymentScreenshot.includes('/uploads/')) {
-      // Always use the production URL for images since that's where they're stored
-      const baseUrl = 'https://tu-suerte-esta-aqui-ve.onrender.com';
-      imageUrl = `${baseUrl}${transaction.paymentScreenshot}`;
-    } 
-    // If it's just a filename
-    else {
-      // Always use the production URL for images
-      const baseUrl = 'https://tu-suerte-esta-aqui-ve.onrender.com';
-      imageUrl = `${baseUrl}/uploads/${transaction.paymentScreenshot}`;
+    if (process.env.NODE_ENV === 'development') {
+      imageUrl = `http://localhost:5000/uploads/${transaction.paymentScreenshot}`;
+    } else {
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
     }
-  }
-  
-  // Fallback to placeholder if no image
-  if (!imageUrl) {
-    imageUrl = '/images/payment-proof-placeholder.png';
   }
   
   console.log('Payment screenshot URL:', imageUrl);
@@ -105,38 +88,16 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
             {/* Right Column: Screenshot */}
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
-              <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden">
-                {/* Always try to display the image first */}
+              <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden bg-gray-900">
                 <img 
                   src={imageUrl} 
                   alt="Comprobante de pago"
                   className="w-full h-full object-contain" 
-                  onLoad={() => setImageLoaded(true)}
                   onError={(e) => {
-                    console.error('Image failed to load:', imageUrl);
-                    setImageError(true);
-                    // Set fallback image on error
+                    console.log('Falling back to placeholder image');
                     e.target.src = '/images/payment-proof-placeholder.png';
                   }}
-                  style={{ display: imageError ? 'none' : 'block' }}
                 />
-                
-                {/* Show error message if image fails to load */}
-                {imageError && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800/70">
-                    <div className="text-center p-4">
-                      <p className="text-red-400 mb-2">Error al cargar la imagen</p>
-                      <a 
-                        href={imageUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-400 underline text-sm"
-                      >
-                        Ver enlace directo
-                      </a>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
