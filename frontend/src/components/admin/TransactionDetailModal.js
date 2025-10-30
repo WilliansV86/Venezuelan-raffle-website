@@ -20,18 +20,21 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
     } 
     // If it's a path like /uploads/filename.jpg
     else if (transaction.paymentScreenshot.includes('/uploads/')) {
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : 'https://tu-suerte-esta-aqui-ve.onrender.com';
+      // Always use the production URL for images since that's where they're stored
+      const baseUrl = 'https://tu-suerte-esta-aqui-ve.onrender.com';
       imageUrl = `${baseUrl}${transaction.paymentScreenshot}`;
     } 
     // If it's just a filename
     else {
-      const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5000' 
-        : 'https://tu-suerte-esta-aqui-ve.onrender.com';
+      // Always use the production URL for images
+      const baseUrl = 'https://tu-suerte-esta-aqui-ve.onrender.com';
       imageUrl = `${baseUrl}/uploads/${transaction.paymentScreenshot}`;
     }
+  }
+  
+  // Fallback to placeholder if no image
+  if (!imageUrl) {
+    imageUrl = '/images/payment-proof-placeholder.png';
   }
   
   console.log('Payment screenshot URL:', imageUrl);
@@ -102,40 +105,39 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
             {/* Right Column: Screenshot */}
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
-              {imageUrl ? (
-                <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden">
-                  {!imageError ? (
-                    <img 
-                      src={imageUrl} 
-                      alt="Comprobante de pago"
-                      className="w-full h-full object-contain" 
-                      onLoad={() => setImageLoaded(true)}
-                      onError={() => {
-                        console.error('Image failed to load:', imageUrl);
-                        setImageError(true);
-                      }}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800/70">
-                      <div className="text-center p-4">
-                        <p className="text-red-400 mb-2">Error al cargar la imagen</p>
-                        <a 
-                          href={imageUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-400 underline text-sm"
-                        >
-                          Ver enlace directo
-                        </a>
-                      </div>
+              <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden">
+                {/* Always try to display the image first */}
+                <img 
+                  src={imageUrl} 
+                  alt="Comprobante de pago"
+                  className="w-full h-full object-contain" 
+                  onLoad={() => setImageLoaded(true)}
+                  onError={(e) => {
+                    console.error('Image failed to load:', imageUrl);
+                    setImageError(true);
+                    // Set fallback image on error
+                    e.target.src = '/images/payment-proof-placeholder.png';
+                  }}
+                  style={{ display: imageError ? 'none' : 'block' }}
+                />
+                
+                {/* Show error message if image fails to load */}
+                {imageError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-800/70">
+                    <div className="text-center p-4">
+                      <p className="text-red-400 mb-2">Error al cargar la imagen</p>
+                      <a 
+                        href={imageUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-400 underline text-sm"
+                      >
+                        Ver enlace directo
+                      </a>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="h-64 w-full rounded-lg border-2 border-gray-600 flex items-center justify-center bg-gray-800/50">
-                  <p className="text-gray-400">No hay comprobante disponible</p>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
