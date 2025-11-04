@@ -9,15 +9,14 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   if (!transaction) return null;
   
   // Get direct URL to the payment proof image
-  let imageUrl = '/images/payment-proof-placeholder.png'; // Default placeholder
+  let imageUrl = null;
   
   // Only try to use the actual image URL if it exists
   if (transaction.paymentScreenshot) {
-    if (process.env.NODE_ENV === 'development') {
-      imageUrl = `http://localhost:5000/uploads/${transaction.paymentScreenshot}`;
-    } else {
-      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
-    }
+    // Always use the production URL for payment screenshots
+    imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
+    console.log('Payment screenshot path:', transaction.paymentScreenshot);
+    console.log('Constructed image URL:', imageUrl);
   }
   
   console.log('Payment screenshot URL:', imageUrl);
@@ -88,16 +87,27 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
             {/* Right Column: Screenshot */}
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
-              <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden bg-gray-900">
-                <img 
-                  src={imageUrl} 
-                  alt="Comprobante de pago"
-                  className="w-full h-full object-contain" 
-                  onError={(e) => {
-                    console.log('Falling back to placeholder image');
-                    e.target.src = '/images/payment-proof-placeholder.png';
-                  }}
-                />
+              <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden bg-gray-900 flex items-center justify-center">
+                {imageUrl ? (
+                  <img 
+                    src={imageUrl} 
+                    alt="Comprobante de pago"
+                    className="max-w-full max-h-full object-contain" 
+                    onError={(e) => {
+                      console.error('Failed to load image:', imageUrl);
+                      // Show a proper error message instead of broken image
+                      e.target.style.display = 'none';
+                      e.target.parentElement.classList.add('payment-image-error');
+                      // Add error element
+                      const errorMsg = document.createElement('div');
+                      errorMsg.className = 'text-red-400 text-center';
+                      errorMsg.innerHTML = 'No se pudo cargar la imagen<br><a href="' + imageUrl + '" target="_blank" class="text-blue-400 text-sm underline">Ver imagen en nueva pestaña</a>';
+                      e.target.parentElement.appendChild(errorMsg);
+                    }}
+                  />
+                ) : (
+                  <p className="text-gray-400">No hay comprobante disponible</p>
+                )}
               </div>
             </div>
           </div>
