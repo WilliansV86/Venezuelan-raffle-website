@@ -13,9 +13,19 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   
   // Only try to use the actual image URL if it exists
   if (transaction.paymentScreenshot) {
-    // Always use the production URL for payment screenshots
-    imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
-    console.log('Payment screenshot path:', transaction.paymentScreenshot);
+    // Check the format of the paymentScreenshot field
+    if (transaction.paymentScreenshot.startsWith('http')) {
+      // Already a complete URL
+      imageUrl = transaction.paymentScreenshot;
+    } else if (transaction.paymentScreenshot.startsWith('/uploads/')) {
+      // Path starts with /uploads/
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com${transaction.paymentScreenshot}`;
+    } else {
+      // Just a filename
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
+    }
+    
+    console.log('Payment screenshot original:', transaction.paymentScreenshot);
     console.log('Constructed image URL:', imageUrl);
   }
   
@@ -89,22 +99,49 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
               <h3 className="text-lg font-semibold mb-2 text-gray-300">Comprobante</h3>
               <div className="relative h-64 w-full rounded-lg border-2 border-gray-600 overflow-hidden bg-gray-900 flex items-center justify-center">
                 {imageUrl ? (
-                  <img 
-                    src={imageUrl} 
-                    alt="Comprobante de pago"
-                    className="max-w-full max-h-full object-contain" 
-                    onError={(e) => {
-                      console.error('Failed to load image:', imageUrl);
-                      // Show a proper error message instead of broken image
-                      e.target.style.display = 'none';
-                      e.target.parentElement.classList.add('payment-image-error');
-                      // Add error element
-                      const errorMsg = document.createElement('div');
-                      errorMsg.className = 'text-red-400 text-center';
-                      errorMsg.innerHTML = 'No se pudo cargar la imagen<br><a href="' + imageUrl + '" target="_blank" class="text-blue-400 text-sm underline">Ver imagen en nueva pestaña</a>';
-                      e.target.parentElement.appendChild(errorMsg);
-                    }}
-                  />
+                  <>
+                    {/* Primary image attempt */}
+                    <img 
+                      src={imageUrl} 
+                      alt="Comprobante de pago"
+                      className="max-w-full max-h-full object-contain" 
+                      onError={(e) => {
+                        console.error('Failed to load image with primary URL:', imageUrl);
+                        
+                        // Try an alternative URL format as fallback
+                        if (transaction.paymentScreenshot) {
+                          let altUrl;
+                          
+                          // Extract just the filename
+                          const filename = transaction.paymentScreenshot.split('/').pop();
+                          altUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${filename}`;
+                          
+                          console.log('Trying alternative URL:', altUrl);
+                          e.target.src = altUrl;
+                          
+                          // Set a second onError handler for the fallback
+                          e.target.onerror = () => {
+                            console.error('Failed to load image with fallback URL');
+                            e.target.style.display = 'none';
+                            
+                            // Create and show error message
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'text-red-400 text-center p-4';
+                            errorDiv.innerHTML = `
+                              <p>No se pudo cargar la imagen</p>
+                              <div class="mt-2">
+                                <a href="${imageUrl}" target="_blank" class="text-blue-400 text-sm underline block mb-1">Ver enlace original</a>
+                                <a href="${altUrl}" target="_blank" class="text-blue-400 text-sm underline block">Ver enlace alternativo</a>
+                              </div>
+                            `;
+                            
+                            const parent = e.target.parentElement;
+                            if (parent) parent.appendChild(errorDiv);
+                          };
+                        }
+                      }}
+                    />
+                  </>
                 ) : (
                   <p className="text-gray-400">No hay comprobante disponible</p>
                 )}
