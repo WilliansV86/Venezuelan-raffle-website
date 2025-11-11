@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import apiConfig from '../../config/apiConfig';
+import ImageDiagnostic from './ImageDiagnostic';
 
 const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   // All useState hooks must be at the top level, before any conditionals
@@ -96,6 +97,9 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
                   }}
                 />
               </div>
+              
+              {/* Image Diagnostic Tool for Debugging */}
+              <ImageDiagnostic paymentScreenshot={transaction.paymentScreenshot} />
             </div>
           </div>
 
