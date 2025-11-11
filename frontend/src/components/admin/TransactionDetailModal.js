@@ -14,8 +14,27 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
   
   // Only try to use the actual image URL if it exists
   if (transaction.paymentScreenshot) {
-    // Always use production URL to ensure consistency
-    imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
+    // Handle different formats of payment screenshot paths
+    if (transaction.paymentScreenshot.includes('/opt/render/project/src/backend/')) {
+      // Extract the relative path from absolute server path
+      const relativePath = transaction.paymentScreenshot.split('/backend/')[1];
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/${relativePath}`;
+    } 
+    else if (transaction.paymentScreenshot.startsWith('/uploads/')) {
+      // Path already starts with /uploads/
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com${transaction.paymentScreenshot}`;
+    }
+    else if (transaction.paymentScreenshot.includes('/')) {
+      // Some other path format - use as is
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
+    }
+    else {
+      // Just a filename
+      imageUrl = `https://tu-suerte-esta-aqui-ve.onrender.com/uploads/${transaction.paymentScreenshot}`;
+    }
+    
+    console.log('Original path:', transaction.paymentScreenshot);
+    console.log('Constructed URL:', imageUrl);
   }
   
   console.log('Payment screenshot URL:', imageUrl);
