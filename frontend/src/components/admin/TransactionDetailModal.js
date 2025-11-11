@@ -109,12 +109,20 @@ const TransactionDetailModal = ({ transaction, onClose, onUpdateStatus }) => {
                 <img 
                   src={imageUrl} 
                   alt="Comprobante de pago"
-                  className="w-full h-full object-contain" 
+                  className="w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity" 
+                  onClick={() => window.open(imageUrl, '_blank')}
+                  title="Click para ver en tamaño completo"
                   onError={(e) => {
                     console.log('Falling back to placeholder image');
                     e.target.src = '/images/payment-proof-placeholder.png';
+                    e.target.onclick = null;
+                    e.target.style.cursor = 'default';
+                    e.target.title = 'No hay comprobante disponible';
                   }}
                 />
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-xs text-center text-blue-300 py-1">
+                  Click para ver en tamaño completo
+                </div>
               </div>
               
               {/* Image Diagnostic Tool for Debugging */}
